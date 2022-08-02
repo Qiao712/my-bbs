@@ -1,0 +1,34 @@
+server:
+  port: 8081
+
+spring:
+  #  配置数据源
+  datasource:
+    username: root
+    password: lty0712
+    url: jdbc:mysql://localhost:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Redis
+  redis:
+    host: 8.141.151.176
+    password: haihaihai
+
+mybatis-plus:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: github.qiao712.bbs.domain.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+sys:
+  token-valid-time: 3600
+  remember-me-token-valid-time: 604800 #7天
+  default-role-id: 1
+  max-avatar-size: 1024000               #1000KiB
+
+  # 阿里云OOS配置
+  aliOSS:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    accessKeyId: LTAI5t5cD89bgvvnNsvpQKY6
+    accessKeySecret: PmLQ3oyKlMDYdjEFGD54Sx9fZGKDLi
+    bucket-name: qiao712-my-bbs
