@@ -38,13 +38,13 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @GetMapping("/")
+    @GetMapping
     public Result<IPage<UserDto>> getUsers(PageQuery pageQuery, UserDto condition){
         return Result.succeed(userService.listUsers(pageQuery, condition));
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @GetMapping("/{userId}/status/{enable}")
+    @PutMapping("/{userId}/status/{enable}")
     public Result<Void> setUserStatus(@PathVariable("userId") Long userId, @PathVariable("enable") Boolean enable){
         return Result.build(userService.setUserStatus(userId, enable));
     }

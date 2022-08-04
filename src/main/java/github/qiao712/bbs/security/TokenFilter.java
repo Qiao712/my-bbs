@@ -28,15 +28,7 @@ public class TokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String token = null;
-        if(request.getCookies() != null){
-            for (Cookie cookie : request.getCookies()) {
-                if(cookie.getName().equals("Token")){
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
+        String token = request.getHeader("Token");
 
         //将用户信息保存至上下文
         if(token != null){

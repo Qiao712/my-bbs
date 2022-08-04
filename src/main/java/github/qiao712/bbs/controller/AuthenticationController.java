@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 
 @RestController
@@ -20,18 +19,9 @@ public class AuthenticationController {
     private AuthenticationService authenticationService;
 
     @PostMapping("/login")
-    public Result<Void> login(@Validated @RequestBody CredentialDto credentialDto, HttpServletResponse response){
+    public Result<String> login(@Validated @RequestBody CredentialDto credentialDto){
         String token = authenticationService.login(credentialDto);
-
-        Cookie cookie = new Cookie("Token", token);
-        cookie.setHttpOnly(false);
-        cookie.setPath("/");
-        if((credentialDto.getRememberMe() != null) && credentialDto.getRememberMe()){
-            cookie.setMaxAge(systemProperties.getRememberMeTokenValidTime());
-        }
-        response.addCookie(cookie);
-
-        return Result.succeed("登录成功");
+        return Result.succeed("登录成功", token);
     }
 
     @GetMapping("/logout")
