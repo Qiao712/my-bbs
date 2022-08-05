@@ -110,6 +110,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
 
+        if(user.getPassword() != null){
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
         return userMapper.updateById(user) > 0;
     }
 
@@ -150,6 +154,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(!FileUtils.isPictureFile(file.getOriginalFilename())){
             throw new ServiceException("文件类型非法");
         }
+
+        //删除原头像图片
+        User originUser = userMapper.selectById(userId);
+        fileService.deleteFile(originUser.getAvatarFileId());
+
+        //保存图片
         Long fileId = fileService.saveFile("user_avatar", file);
 
         User user = new User();

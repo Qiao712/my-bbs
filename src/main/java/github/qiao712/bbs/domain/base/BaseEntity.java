@@ -1,6 +1,8 @@
 package github.qiao712.bbs.domain.base;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import github.qiao712.bbs.domain.AddGroup;
 import github.qiao712.bbs.domain.UpdateGroup;
@@ -21,8 +23,10 @@ public class BaseEntity implements Serializable {
     Long id;
 
     @Null(groups = {AddGroup.class, UpdateGroup.class})
+    @TableField(fill = FieldFill.INSERT)
     LocalDateTime createTime;
 
     @Null(groups = {AddGroup.class, UpdateGroup.class})
+    @TableField(fill = FieldFill.UPDATE)
     LocalDateTime updateTime;
 }
