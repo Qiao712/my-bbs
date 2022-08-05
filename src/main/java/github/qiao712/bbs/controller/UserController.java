@@ -28,13 +28,18 @@ public class UserController {
     }
 
     @GetMapping("/self")
-    public Result<UserDto> getCurrentUser(@AuthenticationPrincipal AuthUser authUser){
+    public Result<User> getCurrentUser(@AuthenticationPrincipal AuthUser authUser){
         return Result.succeed(userService.getUser(authUser.getId()));
     }
 
     @PostMapping("/avatar")
     public Result<Void> setUserAvatar(@RequestPart("file") MultipartFile file, @AuthenticationPrincipal AuthUser authUser){
         return Result.build(userService.setAvatar(authUser.getId(), file));
+    }
+
+    @GetMapping("/{userId}")
+    public Result<User> getUser(@PathVariable("userId") Long userId){
+        return Result.succeedNotNull(userService.getUser(userId));
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -50,14 +55,14 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/")
-    public Result<Void> updateUser(@Validated(UpdateGroup.class) User user){
-        return Result.build(userService.updateById(user));
+    @PutMapping
+    public Result<Void> updateUser(@Validated(UpdateGroup.class) @RequestBody User user){
+        return Result.build(userService.updateUser(user));
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{userId}")
-    public Result<Void> deleteUser(@PathVariable("userId") Long userId){
+    public Result<Void> removeUser(@PathVariable("userId") Long userId){
         return Result.build(userService.removeById(userId));
     }
 }

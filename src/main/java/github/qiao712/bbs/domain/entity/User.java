@@ -24,13 +24,14 @@ public class User extends BaseEntity {
     private final static int MIN_PASSWORD_LENGTH = 6;
 
     @NotBlank(groups = AddGroup.class)
-    @Length(min = MIN_USERNAME_LENGTH, max = MAX_USERNAME_LENGTH, groups = {AddGroup.class, UpdateGroup.class})
+    @Length(min = MIN_USERNAME_LENGTH, max = MAX_USERNAME_LENGTH, groups = {AddGroup.class})
+    @Null(groups = UpdateGroup.class)
     private String username;
 
     @Null(groups = AddGroup.class)
     private Long roleId;
 
-    @NotBlank
+    @NotBlank(groups = AddGroup.class)
     @Length(min = MIN_PASSWORD_LENGTH, max = MAX_PASSWORD_LENGTH, groups = {AddGroup.class, UpdateGroup.class})
     private String password;
 
@@ -40,6 +41,9 @@ public class User extends BaseEntity {
     @Null(groups = {AddGroup.class, UpdateGroup.class})
     private Long avatarFileId;
 
+
     @TableField(exist = false)
     private String role;
+    @TableField(exist = false)
+    private String avatarUrl;
 }

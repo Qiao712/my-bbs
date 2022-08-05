@@ -15,6 +15,8 @@ import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.FileUtils;
+import github.qiao712.bbs.util.SecurityUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,14 +78,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public UserDto getUser(Long userId) {
+    public User getUser(Long userId) {
         User user = userMapper.selectById(userId);
+        if(user == null) return null;
+
+        //role
         Role role = roleMapper.selectById(user.getRoleId());
         user.setRole(role != null ? role.getName() : null);
 
-        UserDto userDto = new UserDto();
-        BeanUtils.copyProperties(user, userDto);
-        return userDto;
+        user.setPassword(null);
+
+        //头像图片url
+        String avatarUrl = fileService.getFileUrl(user.getAvatarFileId());
+        user.setAvatarUrl(avatarUrl);
+        return user;
+    }
+
+    @Override
+    public boolean updateUser(User user) {
+        AuthUser currentUser = SecurityUtils.getCurrentUser();
+        if(currentUser.getId().equals(user.getId())){
+            User originUser = userMapper.selectById(user.getId());
+            if(originUser == null) return false;
+
+            if(user.getEnable() != null && !Objects.equals(user.getEnable(), originUser.getEnable())){
+                throw new ServiceException("不允许更改自己的用户状态");
+            }
+
+            if(user.getRoleId() != null && !Objects.equals(user.getRole(), originUser.getRole())){
+                throw new ServiceException("不允许更改自己的角色");
+            }
+        }
+
+        return userMapper.updateById(user) > 0;
     }
 
     @Override
@@ -93,6 +121,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         IPage<UserDto> page = pageQuery.getIPage();
         List<User> users = userMapper.selectUsers(page, user);
         List<UserDto> userDtos = users.stream().map(this::userDtoMap).collect(Collectors.toList());
+
+        //查询头像url
+        List<Long> avatarFileIds = users.stream().map(User::getAvatarFileId).collect(Collectors.toList());
+        List<String> urls = fileService.getBatchFileUrls(avatarFileIds);
+        for(int i = 0; i < userDtos.size() && i < urls.size(); i++){
+            userDtos.get(i).setAvatarUrl(urls.get(i));
+        }
 
         page.setRecords(userDtos);
         return page;

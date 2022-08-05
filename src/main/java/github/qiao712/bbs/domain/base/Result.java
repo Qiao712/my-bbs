@@ -31,6 +31,14 @@ public class Result<T> {
         return new Result<>(ResultStatus.SUCCESS, message, data);
     }
 
+    public static <T> Result<T> succeedNotNull(T data){
+        if(data != null){
+            return new Result<>(ResultStatus.SUCCESS, null, data);
+        }else{
+            return new Result<>(ResultStatus.FAILURE, "目标实体不存在", null);
+        }
+    }
+
     public static Result<Void> fail(){
         return fail("");
     }

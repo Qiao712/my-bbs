@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 public interface FileService extends IService<FileIdentity> {
     /**
@@ -15,9 +16,11 @@ public interface FileService extends IService<FileIdentity> {
 
     Long saveFile(String dir, MultipartFile file);
 
-    String getFileUrl(Long id);
+    String getFileUrl(Long fileId);
 
-    boolean deleteFile(Long id);
+    List<String> getBatchFileUrls(List<Long> fileIds);
 
-    boolean getFile(Long id, OutputStream outputStream);
+    boolean deleteFile(Long fileId);
+
+    boolean getFile(Long fileId, OutputStream outputStream);
 }

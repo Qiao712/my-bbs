@@ -9,9 +9,11 @@ import java.time.LocalDateTime;
  */
 @Data
 public class UserDto {
+    private Long id;
     private String username;
-    private String role;
     private Boolean enable;
+    private String role;
+    private String avatarUrl;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

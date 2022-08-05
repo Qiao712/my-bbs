@@ -20,7 +20,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity> implements FileService {
@@ -70,32 +72,35 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public String getFileUrl(Long id) {
-        FileIdentity fileIdentity = fileMapper.selectById(id);
+    public String getFileUrl(Long fileId) {
+        FileIdentity fileIdentity = fileMapper.selectById(fileId);
 
         if(fileIdentity != null){
-            String url = "https://" + systemProperties.getAliOSS().getBucketName()
-                         + "." + systemProperties.getAliOSS().getEndpoint()
-                         + "/" + fileIdentity.getPath();
-            return url;
+            return doGetFileUrl(fileIdentity.getPath());
         }
         return null;
     }
 
     @Override
+    public List<String> getBatchFileUrls(List<Long> fileIds) {
+        List<FileIdentity> fileIdentities = fileMapper.selectBatchIds(fileIds);
+        return fileIdentities.stream().map(FileIdentity::getPath).map(this::doGetFileUrl).collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
-    public boolean deleteFile(Long id){
-        FileIdentity fileIdentity = fileMapper.selectById(id);
+    public boolean deleteFile(Long fileId){
+        FileIdentity fileIdentity = fileMapper.selectById(fileId);
         if(fileIdentity != null){
             ossClient.deleteObject(systemProperties.getAliOSS().getBucketName(), fileIdentity.getPath());
-            return fileMapper.deleteById(id) > 0;
+            return fileMapper.deleteById(fileId) > 0;
         }
         return false;
     }
 
     @Override
-    public boolean getFile(Long id, OutputStream outputStream){
-        FileIdentity fileIdentity = fileMapper.selectById(id);
+    public boolean getFile(Long fileId, OutputStream outputStream){
+        FileIdentity fileIdentity = fileMapper.selectById(fileId);
         if(fileIdentity != null){
             OSSObject ossObject = ossClient.getObject(systemProperties.getAliOSS().getBucketName(), fileIdentity.getPath());
             InputStream inputStream = ossObject.getObjectContent();
@@ -113,5 +118,11 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
 
     private String generatorFileName(){
         return UUID.randomUUID().toString();
+    }
+
+    private String doGetFileUrl(String key){
+        return "https://" + systemProperties.getAliOSS().getBucketName()
+                + "." + systemProperties.getAliOSS().getEndpoint()
+                + "/" + key;
     }
 }
