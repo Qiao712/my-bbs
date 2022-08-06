@@ -3,7 +3,7 @@ package github.qiao712.bbs.security;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.base.ResultStatus;
 import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.util.ResponseUtils;
+import github.qiao712.bbs.util.ResponseUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -13,7 +13,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -39,7 +38,7 @@ public class TokenFilter extends OncePerRequestFilter {
             }else {
                 //Token以过期，返回提示
                 Result<Void> result = Result.build(ResultStatus.INVALID_TOKEN, "Token无效");
-                ResponseUtils.response(response, result);
+                ResponseUtil.response(response, result);
                 return;
             }
         }

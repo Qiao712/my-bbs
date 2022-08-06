@@ -7,6 +7,7 @@ import github.qiao712.bbs.config.SystemProperties;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.UserDto;
+import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Role;
 import github.qiao712.bbs.domain.entity.User;
 import github.qiao712.bbs.exception.ServiceException;
@@ -14,9 +15,8 @@ import github.qiao712.bbs.mapper.RoleMapper;
 import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.UserService;
-import github.qiao712.bbs.util.FileUtils;
-import github.qiao712.bbs.util.SecurityUtils;
-import org.apache.logging.log4j.util.Strings;
+import github.qiao712.bbs.util.FileUtil;
+import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -96,7 +96,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public boolean updateUser(User user) {
-        AuthUser currentUser = SecurityUtils.getCurrentUser();
+        AuthUser currentUser = SecurityUtil.getCurrentUser();
         if(currentUser.getId().equals(user.getId())){
             User originUser = userMapper.selectById(user.getId());
             if(originUser == null) return false;
@@ -126,15 +126,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         List<User> users = userMapper.selectUsers(page, user);
         List<UserDto> userDtos = users.stream().map(this::userDtoMap).collect(Collectors.toList());
 
-        //查询头像url
-        List<Long> avatarFileIds = users.stream().map(User::getAvatarFileId).collect(Collectors.toList());
-        List<String> urls = fileService.getBatchFileUrls(avatarFileIds);
-        for(int i = 0; i < userDtos.size() && i < urls.size(); i++){
-            userDtos.get(i).setAvatarUrl(urls.get(i));
-        }
-
         page.setRecords(userDtos);
         return page;
+    }
+
+    @Override
+    @Transactional
+    public boolean removeUser(Long userId) {
+        User user = userMapper.selectById(userId);
+        if(user == null) return false;
+        Long avatarFileId = user.getAvatarFileId();
+
+        boolean flag = userMapper.deleteById(userId) > 0;
+
+        //删除头像文件
+        if(flag && avatarFileId != null){
+            fileService.deleteFile(avatarFileId);
+        }
+
+        return flag;
     }
 
     @Override
@@ -151,7 +161,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(file.getSize() > systemProperties.getMaxAvatarSize()){
             throw new ServiceException("头像图片大小超过" + systemProperties.getMaxAvatarSize() + "bytes");
         }
-        if(!FileUtils.isPictureFile(file.getOriginalFilename())){
+        if(!FileUtil.isPictureFile(file.getOriginalFilename())){
             throw new ServiceException("文件类型非法");
         }
 
@@ -160,17 +170,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         fileService.deleteFile(originUser.getAvatarFileId());
 
         //保存图片
-        Long fileId = fileService.saveFile("user_avatar", file);
+        FileIdentity avatar = fileService.uploadFile("user_avatar", file, false);
 
         User user = new User();
         user.setId(userId);
-        user.setAvatarFileId(fileId);
+        user.setAvatarFileId(avatar != null ? avatar.getId() : null);
         return userMapper.updateById(user) > 0;
     }
 
     private UserDto userDtoMap(User user){
         UserDto userDto = new UserDto();
         BeanUtils.copyProperties(user, userDto);
+
+        //查询头像url
+        String avatarUrl = fileService.getFileUrl(user.getAvatarFileId());
+        userDto.setAvatarUrl(avatarUrl);
+
         return userDto;
     }
 }

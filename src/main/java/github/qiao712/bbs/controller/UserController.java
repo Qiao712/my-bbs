@@ -32,9 +32,12 @@ public class UserController {
         return Result.succeed(userService.getUser(authUser.getId()));
     }
 
-    @PostMapping("/avatar")
-    public Result<Void> setUserAvatar(@RequestPart("file") MultipartFile file, @AuthenticationPrincipal AuthUser authUser){
-        return Result.build(userService.setAvatar(authUser.getId(), file));
+    @PreAuthorize("hasRole('ROLE_ADMIN') or #userId == #currentUser.id")
+    @PostMapping("/{userId}/avatar")
+    public Result<Void> setUserAvatar(@PathVariable("userId") Long userId,
+                                      @AuthenticationPrincipal AuthUser currentUser,
+                                      @RequestPart("file") MultipartFile file){
+        return Result.build(userService.setAvatar(userId, file));
     }
 
     @GetMapping("/{userId}")
@@ -44,7 +47,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping
-    public Result<IPage<UserDto>> getUsers(PageQuery pageQuery, UserDto condition){
+    public Result<IPage<UserDto>> listUsers(PageQuery pageQuery, UserDto condition){
         return Result.succeed(userService.listUsers(pageQuery, condition));
     }
 
@@ -63,6 +66,6 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @DeleteMapping("/{userId}")
     public Result<Void> removeUser(@PathVariable("userId") Long userId){
-        return Result.build(userService.removeById(userId));
+        return Result.build(userService.removeUser(userId));
     }
 }

@@ -6,7 +6,7 @@ import github.qiao712.bbs.domain.base.Result;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class ResponseUtils {
+public class ResponseUtil {
     public static void response(HttpServletResponse response, Result<?> result) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("utf8");

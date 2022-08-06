@@ -6,7 +6,7 @@ import org.springframework.util.MimeType;
 
 import java.util.Optional;
 
-public class FileUtils {
+public class FileUtil {
     /**
      * 根据文件名(拓展名)判断是否为图片文件
      */
@@ -19,7 +19,7 @@ public class FileUtils {
     /**
      * 获取文件后缀(拓展名)
      */
-    public static String getPosix(String filename){
+    public static String getSuffix(String filename){
         if(filename == null) return null;
 
         String[] parts = filename.split("\\.");

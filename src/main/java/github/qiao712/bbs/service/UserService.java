@@ -16,6 +16,8 @@ public interface UserService extends IService<User> {
 
     IPage<UserDto> listUsers(PageQuery pageQuery, UserDto condition);
 
+    boolean removeUser(Long userId);
+
     boolean setUserStatus(Long userId, boolean enable);
 
     boolean setAvatar(Long userId, MultipartFile file);

@@ -19,7 +19,7 @@ public class RoleController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping
-    public Result<List<Role>> getRoles(){
+    public Result<List<Role>> listRoles(){
         return Result.succeed(roleService.list());
     }
 }

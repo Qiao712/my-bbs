@@ -3,9 +3,10 @@ package github.qiao712.bbs.util;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-public class SecurityUtils {
+public class SecurityUtil {
     /**
      * 获取当前用户
      * @return AuthUser
@@ -18,5 +19,13 @@ public class SecurityUtils {
         }else{
             throw new AccessDeniedException("未登录");
         }
+    }
+
+    /**
+     * 查询当前请求是否已认证(可获取当前用户)
+     */
+    public static boolean isAuthenticated(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getPrincipal() instanceof AuthUser;
     }
 }

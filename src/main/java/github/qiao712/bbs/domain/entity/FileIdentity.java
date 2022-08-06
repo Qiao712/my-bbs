@@ -13,11 +13,14 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class FileIdentity extends BaseEntity {
     @ApiModelProperty("文件路径")
-    private String path;
+    private String filepath;
 
     @ApiModelProperty("文件类型")
     private String type;
 
-    @ApiModelProperty("引用计数")
-    private Integer refCount;
+    @ApiModelProperty("指向上传者")
+    private Long uploaderId;
+
+    @ApiModelProperty("是否为临时文件")
+    private Boolean isTemporary;
 }

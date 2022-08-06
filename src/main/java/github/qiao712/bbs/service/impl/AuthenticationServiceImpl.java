@@ -6,7 +6,7 @@ import github.qiao712.bbs.domain.dto.CredentialDto;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.security.TokenManager;
 import github.qiao712.bbs.service.AuthenticationService;
-import github.qiao712.bbs.util.SecurityUtils;
+import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
@@ -45,7 +45,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public void logout() {
-        AuthUser currentUser = SecurityUtils.getCurrentUser();
+        AuthUser currentUser = SecurityUtil.getCurrentUser();
         tokenManager.removeToken(currentUser.getId());
     }
 }

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
 
+import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Null;
 
@@ -18,29 +19,26 @@ import javax.validation.constraints.Null;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class User extends BaseEntity {
-    private final static int MAX_USERNAME_LENGTH = 16;
-    private final static int MIN_USERNAME_LENGTH = 3;
-    private final static int MAX_PASSWORD_LENGTH = 16;
-    private final static int MIN_PASSWORD_LENGTH = 6;
-
-    @NotBlank(groups = AddGroup.class)
-    @Length(min = MIN_USERNAME_LENGTH, max = MAX_USERNAME_LENGTH, groups = {AddGroup.class})
-    @Null(groups = UpdateGroup.class)
+    @NotBlank(groups = AddGroup.class, message = "用户名不可为空")
+    @Length(min = 3, max = 16, groups = {AddGroup.class}, message = "用户名长度应在[3,6]间")
+    @Null(groups = UpdateGroup.class, message = "禁止修改用户名")
     private String username;
 
-    @Null(groups = AddGroup.class)
+    @Null(groups = AddGroup.class, message = "禁止指定角色")
     private Long roleId;
 
-    @NotBlank(groups = AddGroup.class)
-    @Length(min = MIN_PASSWORD_LENGTH, max = MAX_PASSWORD_LENGTH, groups = {AddGroup.class, UpdateGroup.class})
+    @NotBlank(groups = AddGroup.class, message = "密码不可为空")
+    @Length(min = 6, max = 16, groups = {AddGroup.class, UpdateGroup.class}, message = "密码长度应在[6,16]之间")
     private String password;
 
-    @Null(groups = AddGroup.class)
+    @Null(groups = AddGroup.class, message = "不可指定启用状态")
     private Boolean enable;
 
     @Null(groups = {AddGroup.class, UpdateGroup.class})
     private Long avatarFileId;
 
+    @Email(groups = {AddGroup.class, UpdateGroup.class})
+    private String email;
 
     @TableField(exist = false)
     private String role;
