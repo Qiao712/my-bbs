@@ -29,7 +29,7 @@ public interface FileService extends IService<FileIdentity> {
     /**
      * 设置文件是否为临时文件
      */
-    boolean setTempFlag(Long fileId, boolean isTemporary);
+    boolean setTempFlags(List<Long> fileIds, boolean isTemporary);
 
     /**
      * 根据文件id读取文件内容

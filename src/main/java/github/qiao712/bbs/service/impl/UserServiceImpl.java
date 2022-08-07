@@ -3,7 +3,7 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.SystemProperties;
+import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.UserDto;
@@ -40,7 +40,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
-    private SystemProperties systemProperties;
+    private SystemConfig systemConfig;
     @Autowired
     private FileService fileService;
 
@@ -63,7 +63,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public boolean register(User user) {
-        user.setRoleId(systemProperties.getDefaultRoleId());
+        user.setRoleId(systemConfig.getDefaultRoleId());
 
         //加密存储密码
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -158,11 +158,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean setAvatar(Long userId, MultipartFile file) {
-        if(file.getSize() > systemProperties.getMaxAvatarSize()){
-            throw new ServiceException("头像图片大小超过" + systemProperties.getMaxAvatarSize() + "bytes");
+        if(file.getSize() > systemConfig.getMaxAvatarSize()){
+            throw new ServiceException("头像图片大小超过" + systemConfig.getMaxAvatarSize() + "bytes");
         }
         if(!FileUtil.isPictureFile(file.getOriginalFilename())){
-            throw new ServiceException("文件类型非法");
+            throw new ServiceException("文件非图片类型");
         }
 
         //删除原头像图片

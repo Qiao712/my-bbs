@@ -7,7 +7,7 @@ import com.aliyun.oss.internal.OSSHeaders;
 import com.aliyun.oss.model.*;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.SystemProperties;
+import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.exception.FileUploadException;
 import github.qiao712.bbs.mapper.FileMapper;
@@ -34,7 +34,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     @Autowired
     private FileMapper fileMapper;
     @Autowired
-    private SystemProperties systemProperties;
+    private SystemConfig systemConfig;
 
     @Override
     public FileIdentity uploadFile(String path, String fileType, InputStream inputStream, boolean isTemporary) {
@@ -42,7 +42,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
         String filepath = path + '/' + filename;
 
         try{
-            PutObjectRequest putObjectRequest = new PutObjectRequest(systemProperties.getAliOSS().getBucketName(), filepath, inputStream);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(systemConfig.getAliOSS().getBucketName(), filepath, inputStream);
 
             //设置权限--公共读
             ObjectMetadata metadata = new ObjectMetadata();
@@ -76,11 +76,8 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public boolean setTempFlag(Long fileId, boolean isTemporary) {
-        FileIdentity fileIdentity = new FileIdentity();
-        fileIdentity.setId(fileId);
-        fileIdentity.setIsTemporary(isTemporary);
-        return fileMapper.updateById(fileIdentity) > 0;
+    public boolean setTempFlags(List<Long> fileIds, boolean isTemporary) {
+        return fileMapper.updateTempFlag(fileIds, isTemporary) > 0;
     }
 
 
@@ -113,7 +110,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     public boolean deleteFile(Long fileId){
         FileIdentity fileIdentity = fileMapper.selectById(fileId);
         if(fileIdentity != null){
-            ossClient.deleteObject(systemProperties.getAliOSS().getBucketName(), fileIdentity.getFilepath());
+            ossClient.deleteObject(systemConfig.getAliOSS().getBucketName(), fileIdentity.getFilepath());
             return fileMapper.deleteById(fileId) > 0;
         }
         return false;
@@ -123,7 +120,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     public boolean getFile(Long fileId, OutputStream outputStream){
         FileIdentity fileIdentity = fileMapper.selectById(fileId);
         if(fileIdentity != null){
-            OSSObject ossObject = ossClient.getObject(systemProperties.getAliOSS().getBucketName(), fileIdentity.getFilepath());
+            OSSObject ossObject = ossClient.getObject(systemConfig.getAliOSS().getBucketName(), fileIdentity.getFilepath());
             InputStream inputStream = ossObject.getObjectContent();
             try {
                 FileCopyUtils.copy(inputStream, outputStream);
@@ -142,14 +139,14 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     private String getFileUrl(String key){
-        return "https://" + systemProperties.getAliOSS().getBucketName()
-                + "." + systemProperties.getAliOSS().getEndpoint()
+        return "https://" + systemConfig.getAliOSS().getBucketName()
+                + "." + systemConfig.getAliOSS().getEndpoint()
                 + "/" + key;
     }
 
-    public String getFilepathFromUrl(String url){
-        int index = url.indexOf(systemProperties.getAliOSS().getEndpoint());
+    private String getFilepathFromUrl(String url){
+        int index = url.indexOf(systemConfig.getAliOSS().getEndpoint());
         if(index == -1) return null;
-        return url.substring(index + systemProperties.getAliOSS().getEndpoint().length() + 1);
+        return url.substring(index + systemConfig.getAliOSS().getEndpoint().length() + 1);
     }
 }

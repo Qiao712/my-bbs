@@ -1,6 +1,6 @@
 package github.qiao712.bbs.controller;
 
-import github.qiao712.bbs.config.SystemProperties;
+import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.CredentialDto;
 import github.qiao712.bbs.service.AuthenticationService;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthenticationController {
     @Autowired
-    private SystemProperties systemProperties;
+    private SystemConfig systemConfig;
     @Autowired
     private AuthenticationService authenticationService;
 

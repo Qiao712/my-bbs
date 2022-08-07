@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="github.qiao712.bbs.mapper.FileMapper">
+    <update id="updateTempFlag">
+        UPDATE t_file SET is_temporary = #{isTemporary}
+        WHERE id IN
+        <foreach collection="fileIds" item="fileId" separator="," open="(" close=")">
+            #{fileId}
+        </foreach>
+    </update>
+</mapper>

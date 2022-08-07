@@ -1,6 +1,6 @@
 package github.qiao712.bbs.service.impl;
 
-import github.qiao712.bbs.config.SystemProperties;
+import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CredentialDto;
 import github.qiao712.bbs.exception.ServiceException;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
-    private SystemProperties systemProperties;
+    private SystemConfig systemConfig;
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
@@ -37,7 +37,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         boolean rememberMe = credentialDto.getRememberMe() != null && credentialDto.getRememberMe();
-        long validTime = rememberMe ? systemProperties.getRememberMeTokenValidTime() : systemProperties.getTokenValidTime();
+        long validTime = rememberMe ? systemConfig.getRememberMeTokenValidTime() : systemConfig.getTokenValidTime();
 
         AuthUser authUser = (AuthUser) authentication.getPrincipal();
         return tokenManager.createToken(authUser, validTime);

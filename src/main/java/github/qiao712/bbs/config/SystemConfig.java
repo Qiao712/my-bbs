@@ -4,10 +4,13 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+/**
+ * 系统配置
+ */
 @Data
 @Component
 @ConfigurationProperties(prefix = "sys")
-public class SystemProperties {
+public class SystemConfig {
     /**
      * token有时间 (ms)
      */
@@ -27,6 +30,16 @@ public class SystemProperties {
      * 头像图片最大size (byte)
      */
     private Long maxAvatarSize;
+
+    /**
+     * 贴子中图片最大size (byte)
+     */
+    private Long maxPostPictureSize;
+
+    /**
+     * 贴子中图片最大数量 (byte)
+     */
+    private Long maxPostPictureNum;
 
     /**
      * 阿里云OSS配置
