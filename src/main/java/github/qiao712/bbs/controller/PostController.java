@@ -2,6 +2,7 @@ package github.qiao712.bbs.controller;
 
 import github.qiao712.bbs.domain.AddGroup;
 import github.qiao712.bbs.domain.base.Result;
+import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.PostService;
@@ -27,5 +28,10 @@ public class PostController {
     @PostMapping("/pictures")
     public Result<String> uploadPicture(@RequestPart("picture") MultipartFile pictureFile){
         return Result.succeed("图片上传成功", postService.uploadPicture(pictureFile));
+    }
+
+    @GetMapping("/{postId}")
+    public Result<PostDto> getPost(@PathVariable("postId") Long postId){
+        return Result.succeedNotNull(postService.getPost(postId));
     }
 }

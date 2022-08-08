@@ -3,16 +3,20 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.domain.entity.Attachment;
-import github.qiao712.bbs.domain.entity.FileIdentity;
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.dto.PostDto;
+import github.qiao712.bbs.domain.dto.UserDto;
+import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.FileService;
+import github.qiao712.bbs.service.ForumService;
 import github.qiao712.bbs.service.PostService;
+import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.SecurityUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +32,10 @@ import java.util.regex.Pattern;
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
     @Autowired
     private PostMapper postMapper;
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private ForumService forumService;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -85,6 +93,25 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }else{
             return null;
         }
+    }
+
+    @Override
+    public PostDto getPost(Long postId) {
+        Post post = postMapper.selectById(postId);
+        if(post == null) return null;
+        PostDto postDto = new PostDto();
+        BeanUtils.copyProperties(post, postDto);
+
+        //作者用户信息
+        User user = userService.getUser(post.getAuthorId());
+        UserDto userDto = new UserDto();
+        BeanUtils.copyProperties(user, userDto);
+        postDto.setAuthor(userDto);
+
+        //板块名称
+        Forum forum = forumService.getById(post.getForumId());
+        postDto.setForumName(forum.getName());
+        return postDto;
     }
 
     private final static Pattern pattern = Pattern.compile("<img.*? src=\"");    //匹配开头位置，再寻找下一个引号    .*加? 非贪心地匹配
