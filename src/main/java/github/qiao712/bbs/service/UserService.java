@@ -12,6 +12,8 @@ public interface UserService extends IService<User> {
 
     User getUser(Long userId);
 
+    String getUsername(Long userId);
+
     boolean updateUser(User user);
 
     IPage<UserDto> listUsers(PageQuery pageQuery, UserDto condition);

@@ -95,6 +95,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public String getUsername(Long userId) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("id", userId);
+        queryWrapper.select("username");
+        User user = userMapper.selectOne(queryWrapper);
+        return user != null ? user.getUsername() : null;
+    }
+
+    @Override
     public boolean updateUser(User user) {
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         if(currentUser.getId().equals(user.getId())){
