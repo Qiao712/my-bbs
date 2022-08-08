@@ -15,12 +15,14 @@ import github.qiao712.bbs.service.ForumService;
 import github.qiao712.bbs.service.PostService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.FileUtil;
+import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,20 +57,23 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         //解析出引用的图片
-        List<FileIdentity> pictures = findPictureUsedInPost(post.getContent());
+        List<String> urls = HtmlUtil.getImageUrls(post.getContent());
 
         //如果文件的上传者是该该用户(贴子作者)，则记录该贴子对图片的引用(记录为该贴子的一个附件)
-        List<Long> pictureIds = new ArrayList<>(pictures.size());
-        for (FileIdentity picture : pictures) {
-            if(Objects.equals(picture.getUploaderId(), currentUser.getId())){
-                pictureIds.add(picture.getId());
+        List<Long> imageFileIds = new ArrayList<>(urls.size());
+        for (String url : urls) {
+            FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
+            if(imageFileIdentity == null) continue;  //为外部连接
+
+            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())){
+                imageFileIds.add(imageFileIdentity.getId());
             }
         }
-        if(!pictureIds.isEmpty()){
-            attachmentMapper.insertAttachments(post.getId(), pictureIds);
+        if(!imageFileIds.isEmpty()){
+            attachmentMapper.insertAttachments(post.getId(), null, imageFileIds);
 
             //将引用的图片文件标记为非临时文件，不再进行清理
-            fileService.setTempFlags(pictureIds, false);
+            fileService.setTempFlags(imageFileIds, false);
         }
 
         return true;
@@ -112,33 +117,5 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         Forum forum = forumService.getById(post.getForumId());
         postDto.setForumName(forum.getName());
         return postDto;
-    }
-
-    private final static Pattern pattern = Pattern.compile("<img.*? src=\"");    //匹配开头位置，再寻找下一个引号    .*加? 非贪心地匹配
-
-    /**
-     * 找出贴子中引用的图片的文件
-     * @param html
-     * @return
-     */
-    private List<FileIdentity> findPictureUsedInPost(String html){
-        List<FileIdentity> fileIdentities = new ArrayList<>();
-
-        //遍历img标签中的src属性的内容
-        Matcher matcher = pattern.matcher(html);
-        int start, end;
-        while(matcher.find()){
-            start = matcher.end();  //<img ... src=" 的结束即连接地址的开始
-            end = html.indexOf('\"', start);
-            String url = html.substring(start, end);
-
-            //url --> id
-            FileIdentity fileIdentity = fileService.getFileIdentityByUrl(url);
-            if(fileIdentity != null){
-                fileIdentities.add(fileIdentity);
-            }
-        }
-
-        return fileIdentities;
     }
 }
