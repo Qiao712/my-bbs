@@ -161,8 +161,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             commentQuery.setParentId(commentId);
             commentMapper.delete(new QueryWrapper<>(commentQuery));
 
-            //标记其引用的图片可以清理
-            List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIds(comment.getPostId(), comment.getId());
+            //标记其引用的图片(附件)可以清理
+            List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getPostId(), comment.getId());
             if(!attachmentFileIds.isEmpty())
                 fileService.setTempFlags(attachmentFileIds, true);
 

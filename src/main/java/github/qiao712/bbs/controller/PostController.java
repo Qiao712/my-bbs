@@ -4,12 +4,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import github.qiao712.bbs.domain.AddGroup;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
+import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.PostService;
 import github.qiao712.bbs.service.impl.PostServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,5 +43,14 @@ public class PostController {
     @GetMapping
     public Result<IPage<PostDto>> listPosts(PageQuery pageQuery, Long forumId){
         return Result.succeed(postService.listPosts(pageQuery, forumId));
+    }
+
+    @DeleteMapping("/{postId}")
+    public Result<Void> removePost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){
+        if(currentUser.getRole().equals("ROLE_ADMIN") || postService.isAuthor(postId, currentUser.getId())){
+            return Result.build(postService.removePost(postId));
+        }else{
+            throw new AccessDeniedException("无权删除该贴子");
+        }
     }
 }

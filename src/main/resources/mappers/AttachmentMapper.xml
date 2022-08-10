@@ -9,8 +9,13 @@
         </foreach>
     </insert>
 
-    <select id="selectAttachmentFileIds" resultType="Long">
+    <select id="selectAttachmentFileIdsOfComment" resultType="Long">
         SELECT file_id FROM t_attachment
         WHERE post_id = #{postId} AND comment_id = #{commentId}
+    </select>
+
+    <select id="selectAttachmentFileIdsOfPost" resultType="Long">
+        SELECT file_id FROM t_attachment
+        WHERE post_id = #{postId}
     </select>
 </mapper>

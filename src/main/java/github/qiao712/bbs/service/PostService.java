@@ -20,4 +20,8 @@ public interface PostService extends IService<Post> {
     PostDto getPost(Long postId);
 
     IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId);
+
+    boolean removePost(Long postId);
+
+    boolean isAuthor(Long postId, Long userId);
 }

@@ -32,7 +32,7 @@ public class CommentController {
 
     @DeleteMapping("/{commentId}")
     public Result<Void> removeComment(@PathVariable("commentId") Long commentId, @AuthenticationPrincipal AuthUser currentUser){
-        if(currentUser.getAuthorities().contains("ROLE_ADMIN") || commentService.isAuthor(commentId, currentUser.getId())){
+        if(currentUser.getRole().equals("ROLE_ADMIN") || commentService.isAuthor(commentId, currentUser.getId())){
             return Result.build(commentService.removeComment(commentId));
         }else{
             throw new AccessDeniedException("无权删除该评论");

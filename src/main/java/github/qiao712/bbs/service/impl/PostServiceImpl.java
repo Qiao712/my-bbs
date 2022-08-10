@@ -1,6 +1,7 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
@@ -11,6 +12,7 @@ import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
+import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.FileService;
@@ -36,6 +38,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
     @Autowired
     private PostMapper postMapper;
@@ -47,6 +50,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private FileService fileService;
     @Autowired
     private AttachmentMapper attachmentMapper;
+    @Autowired
+    private CommentMapper commentMapper;
     @Autowired
     private SystemConfig systemConfig;
 
@@ -120,6 +125,41 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         List<Post> posts = postPage.getRecords();
         List<PostDto> postDtos = posts.stream().map(this::postDtoMap).collect(Collectors.toList());
         return PageUtil.replaceRecords(postPage, postDtos);
+    }
+
+    @Override
+    public boolean removePost(Long postId) {
+        //删除所有附件
+        //标记其引用的图片(附件)可以清理
+        List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfPost(postId);
+        if(!attachmentFileIds.isEmpty())
+            fileService.setTempFlags(attachmentFileIds, true);
+        //删除attachment记录
+        Attachment attachmentQuery = new Attachment();
+        attachmentQuery.setPostId(postId);
+        attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
+
+        //删除所有评论
+        //将repliedId、parentId设为null，防止外键阻止删除
+        UpdateWrapper<Comment> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.set("replied_id", null);
+        updateWrapper.set("parent_id", null);
+        updateWrapper.eq("post_id", postId);
+        commentMapper.update(null, updateWrapper);
+        //删除
+        Comment commentQuery = new Comment();
+        commentQuery.setPostId(postId);
+        commentMapper.delete(new QueryWrapper<>(commentQuery));
+
+        return postMapper.deleteById(postId) > 0;
+    }
+
+    @Override
+    public boolean isAuthor(Long postId, Long userId) {
+        Post postQuery = new Post();
+        postQuery.setId(postId);
+        postQuery.setAuthorId(userId);
+        return postMapper.exists(new QueryWrapper<>(postQuery));
     }
 
     private PostDto postDtoMap(Post post){
