@@ -8,10 +8,7 @@ import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
-import github.qiao712.bbs.domain.entity.Comment;
-import github.qiao712.bbs.domain.entity.FileIdentity;
-import github.qiao712.bbs.domain.entity.Post;
-import github.qiao712.bbs.domain.entity.User;
+import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -28,12 +25,14 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
     @Autowired
     private CommentMapper commentMapper;
@@ -72,10 +71,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
                 //被回复的评论为一个一级评论，指向该一级评论
                 comment.setParentId(repliedComment.getId());
             }
+        }
 
+        boolean flag = commentMapper.insert(comment) > 0;
+
+        //若为一级评论，则允许插入图片(附件)
+        if(comment.getRepliedId() == null){
             //解析出引用的图片
             List<String> urls = HtmlUtil.getImageUrls(comment.getContent());
-
             //如果文件的上传者是该用户(评论作者)，则记录该评论对图片的引用(记录为该评论一个附件)
             List<Long> imageFileIds = new ArrayList<>(urls.size());
             for (String url : urls) {
@@ -88,19 +91,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             }
             if(!imageFileIds.isEmpty()){
                 attachmentMapper.insertAttachments(comment.getPostId(), comment.getId(), imageFileIds);
-
                 //将引用的图片文件标记为非临时文件，不再进行清理
                 fileService.setTempFlags(imageFileIds, false);
             }
-
-            //TODO: 发送提示消息给被回复者
-        }else{
-            //TODO:发送提示消息给楼主
-
-            //子评论不允许插入图片
         }
 
-        return commentMapper.insert(comment) > 0;
+        return flag;
     }
 
     @Override
@@ -151,5 +147,46 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         return PageUtil.replaceRecords(commentPage, commentDtos);
+    }
+
+    @Override
+    public boolean removeComment(Long commentId) {
+        Comment comment = commentMapper.selectById(commentId);
+        if(comment == null) return false;
+
+        if(comment.getParentId() == null){
+            //该评论为一级评论
+            //删除子评论
+            Comment commentQuery = new Comment();
+            commentQuery.setParentId(commentId);
+            commentMapper.delete(new QueryWrapper<>(commentQuery));
+
+            //标记其引用的图片可以清理
+            List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIds(comment.getPostId(), comment.getId());
+            if(!attachmentFileIds.isEmpty())
+                fileService.setTempFlags(attachmentFileIds, true);
+
+            //删除attachment记录
+            Attachment attachmentQuery = new Attachment();
+            attachmentQuery.setPostId(comment.getPostId());
+            attachmentQuery.setCommentId(comment.getId());
+            attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
+        }else{
+            //二级评论
+            //删除回复其的评论
+            Comment commentQuery = new Comment();
+            commentQuery.setRepliedId(commentId);
+            commentMapper.delete(new QueryWrapper<>(commentQuery));
+        }
+
+        return commentMapper.deleteById(commentId) > 0;
+    }
+
+    @Override
+    public boolean isAuthor(Long commentId, Long userId) {
+        Comment commentQuery = new Comment();
+        commentQuery.setId(commentId);
+        commentQuery.setAuthorId(userId);
+        return commentMapper.exists(new QueryWrapper<>(commentQuery));
     }
 }

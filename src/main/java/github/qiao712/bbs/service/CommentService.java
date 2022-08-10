@@ -16,5 +16,14 @@ public interface CommentService extends IService<Comment> {
      */
     IPage<CommentDto> listComments(PageQuery pageQuery, Long postId, Long parentCommentId);
 
-    
+    /**
+     * 删除评论
+     * 若为一级评论，则同时将其引用的附件标记为可删除的
+     */
+    boolean removeComment(Long commentId);
+
+    /**
+     * 判断用户是否为评论的发布者
+     */
+    boolean isAuthor(Long commentId, Long userId);
 }
