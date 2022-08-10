@@ -1,7 +1,10 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
+import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
@@ -16,6 +19,7 @@ import github.qiao712.bbs.service.PostService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.HtmlUtil;
+import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +33,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
@@ -103,6 +108,21 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public PostDto getPost(Long postId) {
         Post post = postMapper.selectById(postId);
+        return postDtoMap(post);
+    }
+
+    @Override
+    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId) {
+        Post post = new Post();
+        post.setForumId(forumId);
+        IPage<Post> postPage = postMapper.selectPage(pageQuery.getIPage(), new QueryWrapper<>(post));
+
+        List<Post> posts = postPage.getRecords();
+        List<PostDto> postDtos = posts.stream().map(this::postDtoMap).collect(Collectors.toList());
+        return PageUtil.replaceRecords(postPage, postDtos);
+    }
+
+    private PostDto postDtoMap(Post post){
         if(post == null) return null;
         PostDto postDto = new PostDto();
         BeanUtils.copyProperties(post, postDto);

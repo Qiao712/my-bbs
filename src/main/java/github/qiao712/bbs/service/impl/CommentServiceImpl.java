@@ -30,6 +30,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
@@ -106,7 +108,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("post_id", postId);
         queryWrapper.orderByAsc("create_time");
-
         if(parentCommentId != null){
             //查询父评论id为parentCommentId的所有评论
             queryWrapper.eq("parent_id", parentCommentId);
@@ -114,9 +115,25 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             //查询一级评论
             queryWrapper.isNull("parent_id");
         }
-
         IPage<Comment> commentPage = commentMapper.selectPage(pageQuery.getIPage(), queryWrapper);
         List<Comment> comments = commentPage.getRecords();
+
+        //将所用到的用户信息一次查出
+        Set<Long> authorIds = comments.stream().map(Comment::getAuthorId).collect(Collectors.toSet());
+        Map<Long, UserDto> userDtoMap = new HashMap<>(authorIds.size());
+        for (Long authorId : authorIds) {
+            User user = userService.getUser(authorId);
+            UserDto userDto = new UserDto();
+            BeanUtils.copyProperties(user, userDto);
+            userDtoMap.put(authorId, userDto);
+        }
+
+        //comment id --> author
+        Map<Long, String> authorUsernameMap = new HashMap<>(authorIds.size());
+        for (Comment comment : comments) {
+            UserDto author = userDtoMap.get(comment.getAuthorId());
+            authorUsernameMap.put(comment.getId(), author != null ? author.getUsername() : null);
+        }
 
         //组装CommentDto
         List<CommentDto> commentDtos = new ArrayList<>();
@@ -125,13 +142,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             BeanUtils.copyProperties(comment, commentDto);
 
             //author
-            User user = userService.getUser(comment.getAuthorId());
-            UserDto userDto = new UserDto();
-            BeanUtils.copyProperties(user, userDto);
-            commentDto.setAuthor(userDto);
+            commentDto.setAuthor(userDtoMap.get(comment.getAuthorId()));
 
             //user replied
-            commentDto.setRepliedUserName(userService.getUsername(comment.getRepliedId()));
+            commentDto.setRepliedUserName(authorUsernameMap.get(comment.getRepliedId()));
 
             commentDtos.add(commentDto);
         }

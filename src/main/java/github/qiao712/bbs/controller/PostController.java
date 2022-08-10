@@ -1,6 +1,8 @@
 package github.qiao712.bbs.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import github.qiao712.bbs.domain.AddGroup;
+import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.FileIdentity;
@@ -33,5 +35,10 @@ public class PostController {
     @GetMapping("/{postId}")
     public Result<PostDto> getPost(@PathVariable("postId") Long postId){
         return Result.succeedNotNull(postService.getPost(postId));
+    }
+
+    @GetMapping
+    public Result<IPage<PostDto>> listPosts(PageQuery pageQuery, Long forumId){
+        return Result.succeed(postService.listPosts(pageQuery, forumId));
     }
 }
