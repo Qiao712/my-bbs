@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,12 +23,17 @@ public class ForumController {
 
     @GetMapping("/{forumId}")
     public Result<Forum> getForum(@PathVariable("forumId") Long forumId){
-        return Result.succeedNotNull(forumService.getById(forumId));
+        return Result.succeedNotNull(forumService.getForum(forumId));
     }
 
     @GetMapping
     public Result<IPage<Forum>> listForums(PageQuery pageQuery, Forum forum){
         return Result.succeed(forumService.listForums(pageQuery, forum));
+    }
+
+    @GetMapping("/all")
+    public Result<List<Forum>> listAllForums(){
+        return Result.succeed(forumService.listAllForums());
     }
 
     @PostMapping
@@ -51,5 +57,11 @@ public class ForumController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public Result<List<String>> listCategories(){
         return Result.succeed(forumService.listCategories());
+    }
+
+    @PutMapping("/{forumId}/logo")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public Result<Void> setForumLogo(@PathVariable Long forumId, @RequestPart("file") MultipartFile file){
+        return Result.build(forumService.setForumLogo(forumId, file));
     }
 }

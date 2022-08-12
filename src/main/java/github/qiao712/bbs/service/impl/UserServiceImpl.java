@@ -176,6 +176,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         //删除原头像图片
         User originUser = userMapper.selectById(userId);
+        if(originUser == null) return false;
         fileService.deleteFile(originUser.getAvatarFileId());
 
         //保存图片

@@ -42,6 +42,11 @@ public class SystemConfig {
     private Long maxPostPictureNum;
 
     /**
+     * 板块logo图片最大size (byte)
+     */
+    private Long maxLogoImageSize;
+
+    /**
      * 阿里云OSS配置
      */
     @Data
