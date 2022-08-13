@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="github.qiao712.bbs.mapper.PostMapper">
+    <select id="getLikeCount" resultType="int">
+        SELECT like_count FROM t_post WHERE id = #{postId}
+    </select>
 
+    <update id="increaseLikeCount">
+        UPDATE t_post SET like_count = like_count + #{delta} WHERE id = #{postId}
+    </update>
 </mapper>

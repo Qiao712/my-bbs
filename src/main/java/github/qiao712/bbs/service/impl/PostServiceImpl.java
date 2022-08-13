@@ -15,10 +15,7 @@ import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.mapper.UserMapper;
-import github.qiao712.bbs.service.FileService;
-import github.qiao712.bbs.service.ForumService;
-import github.qiao712.bbs.service.PostService;
-import github.qiao712.bbs.service.UserService;
+import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
@@ -48,6 +45,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private ForumService forumService;
     @Autowired
     private FileService fileService;
+    @Autowired
+    private LikeService likeService;
     @Autowired
     private AttachmentMapper attachmentMapper;
     @Autowired
@@ -113,17 +112,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public PostDto getPost(Long postId) {
         Post post = postMapper.selectById(postId);
-        return postDtoMap(post);
+        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
+        return postDtoMap(post, currentUserId);
     }
 
     @Override
     public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId) {
-        Post post = new Post();
-        post.setForumId(forumId);
-        IPage<Post> postPage = postMapper.selectPage(pageQuery.getIPage(), new QueryWrapper<>(post));
-
+        Post postQuery = new Post();
+        postQuery.setForumId(forumId);
+        IPage<Post> postPage = postMapper.selectPage(pageQuery.getIPage(), new QueryWrapper<>(postQuery));
         List<Post> posts = postPage.getRecords();
-        List<PostDto> postDtos = posts.stream().map(this::postDtoMap).collect(Collectors.toList());
+
+        //to PostDto
+        List<PostDto> postDtos = new ArrayList<>(posts.size());
+        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
+        for (Post post : posts) {
+            postDtos.add(postDtoMap(post, currentUserId));
+        }
+
         return PageUtil.replaceRecords(postPage, postDtos);
     }
 
@@ -162,7 +168,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         return postMapper.exists(new QueryWrapper<>(postQuery));
     }
 
-    private PostDto postDtoMap(Post post){
+    private PostDto postDtoMap(Post post, Long currentUserId){
         if(post == null) return null;
         PostDto postDto = new PostDto();
         BeanUtils.copyProperties(post, postDto);
@@ -176,6 +182,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //板块名称
         Forum forum = forumService.getById(post.getForumId());
         postDto.setForumName(forum.getName());
+
+        //当前用户是否已点赞
+        postDto.setLiked(likeService.hasLikedPost(post.getId(), currentUserId));
         return postDto;
     }
 }

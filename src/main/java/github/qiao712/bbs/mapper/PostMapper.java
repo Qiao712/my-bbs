@@ -6,5 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface PostMapper extends BaseMapper<Post> {
+    Integer getLikeCount(Long postId);
 
+    Integer increaseLikeCount(Long postId, Integer delta);
 }

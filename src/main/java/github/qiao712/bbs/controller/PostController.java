@@ -6,10 +6,9 @@ import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
-import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
-import github.qiao712.bbs.service.impl.PostServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,13 +16,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
     @Autowired
     private PostService postService;
+    @Autowired
+    private LikeService likeService;
 
     @PostMapping
     public Result<Void> addPost(@Validated(AddGroup.class) @RequestBody Post post){
@@ -52,5 +51,16 @@ public class PostController {
         }else{
             throw new AccessDeniedException("无权删除该贴子");
         }
+    }
+
+    //-----------------------------------------
+    @GetMapping("/{postId}/like")
+    public Result<Void> likePost(@PathVariable("postId") Long postId){
+        return Result.build(likeService.likePost(postId));
+    }
+
+    @GetMapping("/{postId}/undo-like")
+    public Result<Void> undoLikePost(@PathVariable("postId") Long postId){
+        return Result.build(likeService.undoLikePost(postId));
     }
 }
