@@ -2,33 +2,30 @@ package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
+import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.FileMapper;
+import github.qiao712.bbs.mapper.ForumMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.CommentService;
 import github.qiao712.bbs.service.FileService;
-import github.qiao712.bbs.service.PostService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +35,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private CommentMapper commentMapper;
     @Autowired
     private PostMapper postMapper;
+    @Autowired
+    private ForumMapper forumMapper;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -150,6 +149,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     }
 
     @Override
+    public IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, Long authorId) {
+        return commentMapper.listCommentDetailDtos(pageQuery.getIPage(), authorId);
+    }
+
+    @Override
     public boolean removeComment(Long commentId) {
         Comment comment = commentMapper.selectById(commentId);
         if(comment == null) return false;
@@ -189,4 +193,25 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         commentQuery.setAuthorId(userId);
         return commentMapper.exists(new QueryWrapper<>(commentQuery));
     }
+
+//    private CommentDetailDto convertToCommentDetailDto(Comment comment){
+//        CommentDetailDto commentDetailDto = new CommentDetailDto();
+//
+//        commentDetailDto.setRepliedUserName( userService.getUsername(comment.get));
+//
+//        QueryWrapper<Post> postQueryWrapper = new QueryWrapper<>();
+//        postQueryWrapper.select("title");
+//        postQueryWrapper.select("forum_id");
+//        postQueryWrapper.eq("id", comment.getPostId());
+//        Post post = postMapper.selectOne(postQueryWrapper);
+//        commentDetailDto.setPostTitle(post.getTitle());
+//
+//        QueryWrapper<Forum> forumQueryWrapper = new QueryWrapper<>();
+//        forumQueryWrapper.select("name");
+//        forumQueryWrapper.eq("id", post.getForumId());
+//        Forum forum = forumMapper.selectOne(forumQueryWrapper);
+//        commentDetailDto.setForumName(forum.getName());
+//
+//        return commentDetailDto;
+//    }
 }

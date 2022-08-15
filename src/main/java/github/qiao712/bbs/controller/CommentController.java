@@ -5,6 +5,7 @@ import github.qiao712.bbs.domain.AddGroup;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
+import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.entity.Comment;
 import github.qiao712.bbs.service.CommentService;
@@ -26,8 +27,13 @@ public class CommentController {
     }
 
     @GetMapping
-    public Result<IPage<CommentDto>> getComments(PageQuery pageQuery, Long postId, Long parentCommentId){
+    public Result<IPage<CommentDto>> listComments(PageQuery pageQuery, Long postId, Long parentCommentId){
         return Result.succeed(commentService.listComments(pageQuery, postId, parentCommentId));
+    }
+
+    @GetMapping("/my")
+    public Result<IPage<CommentDetailDto>> listCommentsByAuthor(PageQuery pageQuery, @RequestParam Long authorId){
+        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authorId));
     }
 
     @DeleteMapping("/{commentId}")
