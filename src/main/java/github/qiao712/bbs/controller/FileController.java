@@ -3,6 +3,7 @@ package github.qiao712.bbs.controller;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,5 +15,12 @@ public class FileController {
     @GetMapping("/{fileId}/url")
     public Result<String> getFileUrl(@PathVariable("fileId") Long fileId){
         return Result.succeed("", fileService.getFileUrl(fileId));
+    }
+
+    @GetMapping("/clear-temp")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public Result<Void> clearTemporaryFile(){
+        fileService.clearTemporaryFile();
+        return Result.succeed();
     }
 }

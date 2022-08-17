@@ -6,14 +6,22 @@ import com.aliyun.oss.OSSException;
 import com.aliyun.oss.internal.OSSHeaders;
 import com.aliyun.oss.model.*;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.entity.FileIdentity;
+import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.exception.FileUploadException;
 import github.qiao712.bbs.mapper.FileMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.util.FileUtil;
+import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.SecurityUtil;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,26 +31,37 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.alibaba.fastjson.JSON.toJSONString;
+
 @Service
-public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity> implements FileService {
+public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity> implements FileService, InitializingBean {
     @Autowired
     private OSS ossClient;
     @Autowired
     private FileMapper fileMapper;
+
     @Autowired
     private SystemConfig systemConfig;
+    private String bucketName;
+    private String endpoint;
 
     @Override
+    public void afterPropertiesSet() throws Exception {
+        this.bucketName = systemConfig.getAliOSS().getBucketName();
+        this.endpoint = systemConfig.getAliOSS().getEndpoint();
+    }
+
+    @Override
+    @Transactional
     public FileIdentity uploadFile(String path, String fileType, InputStream inputStream, boolean isTemporary) {
         String filename = generatorFileName() + (fileType != null ? ("." + fileType) : "");
         String filepath = path + '/' + filename;
 
         try{
-            PutObjectRequest putObjectRequest = new PutObjectRequest(systemConfig.getAliOSS().getBucketName(), filepath, inputStream);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, filepath, inputStream);
 
             //设置权限--公共读
             ObjectMetadata metadata = new ObjectMetadata();
@@ -110,17 +129,54 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     public boolean deleteFile(Long fileId){
         FileIdentity fileIdentity = fileMapper.selectById(fileId);
         if(fileIdentity != null){
-            ossClient.deleteObject(systemConfig.getAliOSS().getBucketName(), fileIdentity.getFilepath());
+            ossClient.deleteObject(bucketName, fileIdentity.getFilepath());
             return fileMapper.deleteById(fileId) > 0;
         }
         return false;
     }
 
     @Override
+    public void clearTemporaryFile() {
+        QueryWrapper<FileIdentity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("is_temporary", true);
+        Page<FileIdentity> page = new Page<>(1, 1000);  //阿里云OSS批量删除，一次最多1000个
+
+        do{
+            fileMapper.selectPage(page, queryWrapper);
+            List<FileIdentity> files = page.getRecords();
+            List<String> keys = files.stream().map(FileIdentity::getFilepath).collect(Collectors.toList());
+
+            //从OSS中批量删除
+            DeleteObjectsRequest deleteObjectsRequest = new DeleteObjectsRequest(bucketName);
+            deleteObjectsRequest.setKeys(keys);
+            deleteObjectsRequest.setQuiet(true);    //简单模式，返回删除失败的文件列表
+            DeleteObjectsResult deleteObjectsResult = ossClient.deleteObjects(deleteObjectsRequest);
+            List<String> notDeletedObjects = deleteObjectsResult.getDeletedObjects();   //删除失败的文件列表
+
+            //成功删除的文件的id
+            List<Long> ids;
+            if(notDeletedObjects.isEmpty()){
+                ids = files.stream().map(FileIdentity::getId).collect(Collectors.toList());
+            }else{
+                Set<String> notDeletedObjectsSet = new HashSet<>(notDeletedObjects);
+                ids = new ArrayList<>(files.size() - notDeletedObjectsSet.size());
+                for (FileIdentity file : files) {
+                    if(!notDeletedObjectsSet.contains(file.getFilepath())) ids.add(file.getId());
+                }
+            }
+
+            fileMapper.deleteBatchIds(ids);
+
+            //下一页
+            page.setCurrent(page.getCurrent() + 1);
+        }while (page.getCurrent() <= page.getPages());
+    }
+
+    @Override
     public boolean getFile(Long fileId, OutputStream outputStream){
         FileIdentity fileIdentity = fileMapper.selectById(fileId);
         if(fileIdentity != null){
-            OSSObject ossObject = ossClient.getObject(systemConfig.getAliOSS().getBucketName(), fileIdentity.getFilepath());
+            OSSObject ossObject = ossClient.getObject(bucketName, fileIdentity.getFilepath());
             InputStream inputStream = ossObject.getObjectContent();
             try {
                 FileCopyUtils.copy(inputStream, outputStream);
@@ -139,14 +195,14 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     private String getFileUrl(String key){
-        return "https://" + systemConfig.getAliOSS().getBucketName()
-                + "." + systemConfig.getAliOSS().getEndpoint()
+        return "https://" + bucketName
+                + "." + endpoint
                 + "/" + key;
     }
 
     private String getFilepathFromUrl(String url){
-        int index = url.indexOf(systemConfig.getAliOSS().getEndpoint());
+        int index = url.indexOf(endpoint);
         if(index == -1) return null;
-        return url.substring(index + systemConfig.getAliOSS().getEndpoint().length() + 1);
+        return url.substring(index + endpoint.length() + 1);
     }
 }

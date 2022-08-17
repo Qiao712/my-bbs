@@ -55,4 +55,9 @@ public interface FileService extends IService<FileIdentity> {
      * 根据id删除文件
      */
     boolean deleteFile(Long fileId);
+
+    /**
+     * 清理临时文件
+     */
+    void clearTemporaryFile();
 }

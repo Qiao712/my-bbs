@@ -1,5 +1,7 @@
 package github.qiao712.bbs;
 
+import com.aliyun.oss.model.DeleteObjectsRequest;
+import com.aliyun.oss.model.DeleteObjectsResult;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.service.impl.AliOSSFileServiceImpl;
 import org.assertj.core.util.Lists;
@@ -28,5 +30,10 @@ public class TestFileService {
     public void testTempFlag(){
         List<Long> fileIds = Lists.list(16L, 17L, 18L, 19L, 20L);
         fileService.setTempFlags(fileIds, true);
+    }
+
+    @Test
+    public void testDeleteTemporaryFile(){
+        fileService.clearTemporaryFile();
     }
 }
