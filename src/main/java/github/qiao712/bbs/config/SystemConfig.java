@@ -47,6 +47,18 @@ public class SystemConfig {
     private Long maxLogoImageSize;
 
     /**
+     * ElasticSearch相关配置
+     */
+    @Data
+    public static class ElasticSearch{
+        private String[] hosts;
+        private String username;
+        private String password;
+    }
+
+    private ElasticSearch elasticSearch;
+
+    /**
      * 阿里云OSS配置
      */
     @Data

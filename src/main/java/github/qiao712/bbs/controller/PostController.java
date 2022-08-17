@@ -9,12 +9,18 @@ import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
+import github.qiao712.bbs.service.SearchService;
+import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -40,8 +46,15 @@ public class PostController {
     }
 
     @GetMapping
-    public Result<IPage<PostDto>> listPosts(PageQuery pageQuery, Long forumId){
-        return Result.succeed(postService.listPosts(pageQuery, forumId));
+    public Result<IPage<PostDto>> listPosts(@Validated PageQuery pageQuery, Long forumId, Long authorId){
+        return Result.succeed(postService.listPosts(pageQuery, forumId, authorId));
+    }
+
+    @GetMapping("/search")
+    public Result<IPage<PostDto>> searchPosts(@Validated PageQuery pageQuery,
+                                              @NotNull @NotBlank @Length(max = 30) String text,
+                                              Long authorId, Long forumId){
+        return Result.succeed(postService.searchPosts(pageQuery, text, authorId, forumId));
     }
 
     @DeleteMapping("/{postId}")

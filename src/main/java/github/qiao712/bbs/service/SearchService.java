@@ -1,0 +1,42 @@
+package github.qiao712.bbs.service;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.entity.Post;
+
+public interface SearchService {
+    /**
+     * 将贴子存入索引库
+     */
+    void savePost(Post post);
+
+    /**
+     * 将贴子从索引库中删除
+     */
+    void removePost(Long postId);
+
+    /**
+     * 修改贴子
+     */
+    void updatePost(Post post);
+
+    /**
+     * 获取贴子文档
+     * 无likeCount字段; 内容为去除Html样式的内容
+     */
+    Post getPostDoc(Long postId);
+
+    /**
+     * 搜索贴子
+     * @param text 搜索内容
+     * @param authorId 指定作者
+     * @param forumId 指定板块
+     * @return Post对象，未设置likeCount字段
+     */
+    IPage<Post> searchPosts(PageQuery pageQuery, String text, Long authorId, Long forumId);
+
+    /**
+     * 将数据库中所有贴子同步到索引库
+     */
+    void syncAllPosts();
+}

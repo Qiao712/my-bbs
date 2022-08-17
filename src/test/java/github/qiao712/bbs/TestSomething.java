@@ -1,7 +1,11 @@
 package github.qiao712.bbs;
 
+import github.qiao712.bbs.event.PostEvent;
+import github.qiao712.bbs.util.HtmlUtil;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.io.File;
 import java.io.FileReader;
@@ -33,5 +37,28 @@ public class TestSomething {
             System.out.println(html.substring(start, end));
         }
 
+    }
+
+    @Test
+    public void testGetTextFromHtml() throws IOException {
+        File file = new File("D://desktop//test.htm");
+        FileReader fileReader = new FileReader(file);
+        char[] buf = new char[(int) file.length()];
+        fileReader.read(buf);
+        String html = new String(buf);
+
+        System.out.println(html);
+        System.out.println(HtmlUtil.getText(html));
+    }
+
+    @Autowired
+    private ApplicationEventPublisher publisher;
+
+    @Test
+    public void testEvent() throws InterruptedException {
+        PostEvent postEvent = PostEvent.buildCreatePostEvent(null, this);
+        publisher.publishEvent(postEvent);
+        System.out.println(Thread.currentThread() + ": publisher");
+        Thread.sleep(5000000);
     }
 }

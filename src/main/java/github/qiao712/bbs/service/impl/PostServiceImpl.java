@@ -10,11 +10,11 @@ import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
+import github.qiao712.bbs.event.PostEvent;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.HtmlUtil;
@@ -22,16 +22,15 @@ import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.HtmlUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +43,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private ForumService forumService;
     @Autowired
+    private SearchService searchService;
+    @Autowired
     private FileService fileService;
     @Autowired
     private LikeService likeService;
@@ -51,6 +52,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private AttachmentMapper attachmentMapper;
     @Autowired
     private CommentMapper commentMapper;
+    @Autowired
+    private ApplicationEventPublisher publisher;
     @Autowired
     private SystemConfig systemConfig;
 
@@ -85,6 +88,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             fileService.setTempFlags(imageFileIds, false);
         }
 
+        //发布添加事件，以同步至ElasticSearch
+        publisher.publishEvent(PostEvent.buildCreatePostEvent(post, this));
+
         return true;
     }
 
@@ -117,11 +123,35 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId) {
+    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId) {
         Post postQuery = new Post();
         postQuery.setForumId(forumId);
+        postQuery.setForumId(authorId);
         IPage<Post> postPage = postMapper.selectPage(pageQuery.getIPage(), new QueryWrapper<>(postQuery));
         List<Post> posts = postPage.getRecords();
+
+        //to PostDto
+        List<PostDto> postDtos = new ArrayList<>(posts.size());
+        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
+        for (Post post : posts) {
+            postDtos.add(postDtoMap(post, currentUserId));
+        }
+
+        return PageUtil.replaceRecords(postPage, postDtos);
+    }
+
+    @Override
+    public IPage<PostDto> searchPosts(PageQuery pageQuery, String text, Long forumId, Long authorId) {
+        IPage<Post> postPage = searchService.searchPosts(pageQuery, text, authorId, forumId);
+        List<Post> posts = postPage.getRecords();
+        if(posts.isEmpty()) return PageUtil.replaceRecords(postPage, Collections.emptyList());
+
+        //设置likeCount字段
+        List<Long> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        List<Integer> likeCountBatch = postMapper.getLikeCountBatch(postIds);
+        for(int i = 0; i < postIds.size(); i++){
+            posts.get(i).setLikeCount(likeCountBatch.get(i));
+        }
 
         //to PostDto
         List<PostDto> postDtos = new ArrayList<>(posts.size());
@@ -157,7 +187,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         commentQuery.setPostId(postId);
         commentMapper.delete(new QueryWrapper<>(commentQuery));
 
-        return postMapper.deleteById(postId) > 0;
+        if(postMapper.deleteById(postId) > 0){
+            //发布删除事件，以同步至ElasticSearch
+            publisher.publishEvent(PostEvent.buildDeletePostEvent(postId, this));
+            return true;
+        }
+
+        return false;
     }
 
     @Override

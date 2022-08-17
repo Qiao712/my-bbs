@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.Data;
 
 import javax.validation.constraints.Max;
+import javax.validation.constraints.NotBlank;
 
 /**
  * 分页查询
@@ -17,6 +18,9 @@ public class PageQuery {
     @Max(MAX_PAGE_SIZE)
     private int pageSize = 10;
 
+    private String orderBy;
+
+    private String order;   //ASC / DESC
     /**
      * 转换为MyBatisPlus的分页模型
      * @return

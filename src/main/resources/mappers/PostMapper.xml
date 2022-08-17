@@ -5,6 +5,14 @@
         SELECT like_count FROM t_post WHERE id = #{postId}
     </select>
 
+    <select id="getLikeCountBatch" resultType="int">
+        SELECT like_count FROM t_post
+        WHERE id IN
+        <foreach collection="postIds" item="postId" open="(" close=")" separator=",">
+            #{postId}
+        </foreach>
+    </select>
+
     <update id="increaseLikeCount">
         UPDATE t_post SET like_count = like_count + #{delta} WHERE id = #{postId}
     </update>

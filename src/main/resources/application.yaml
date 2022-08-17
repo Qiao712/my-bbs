@@ -36,3 +36,10 @@ sys:
     accessKeyId: LTAI5t5cD89bgvvnNsvpQKY6
     accessKeySecret: PmLQ3oyKlMDYdjEFGD54Sx9fZGKDLi
     bucket-name: qiao712-my-bbs
+
+  # ElasticSearch地址
+  elastic-search:
+    hosts:
+      - 121.36.85.97:9200
+    username: elastic
+    password: haihaihai

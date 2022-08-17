@@ -19,7 +19,9 @@ public interface PostService extends IService<Post> {
 
     PostDto getPost(Long postId);
 
-    IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId);
+    IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId);
+
+    IPage<PostDto> searchPosts(PageQuery pageQuery, String text, Long forumId, Long authorId);
 
     boolean removePost(Long postId);
 

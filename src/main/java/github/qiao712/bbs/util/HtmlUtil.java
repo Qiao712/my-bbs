@@ -25,4 +25,31 @@ public class HtmlUtil {
 
         return urls;
     }
+
+    /**
+     * 获取html中所有的Text
+     * (“<>”外的内容)
+     */
+    public static String getText(String html){
+        StringBuilder builder = new StringBuilder();
+        boolean in = false; //是否在尖括号内
+
+        char c;
+        for(int i = 0; i<html.length(); i++){
+            c = html.charAt(i);
+            if(c == '<'){
+                in = true;
+            }else if(c == '>'){
+                in = false;
+
+                //空格分割
+                if(builder.length() != 0 && builder.charAt(builder.length() - 1) != ' ')
+                    builder.append(' ');
+            }else{
+                if(!in) builder.append(c);
+            }
+        }
+
+        return builder.toString();
+    }
 }
