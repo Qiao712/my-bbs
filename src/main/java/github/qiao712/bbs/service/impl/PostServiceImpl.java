@@ -126,7 +126,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId) {
         Post postQuery = new Post();
         postQuery.setForumId(forumId);
-        postQuery.setForumId(authorId);
+        postQuery.setAuthorId(authorId);
         IPage<Post> postPage = postMapper.selectPage(pageQuery.getIPage(), new QueryWrapper<>(postQuery));
         List<Post> posts = postPage.getRecords();
 
