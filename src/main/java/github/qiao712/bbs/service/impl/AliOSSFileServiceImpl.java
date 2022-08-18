@@ -141,9 +141,10 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
         queryWrapper.eq("is_temporary", true);
         Page<FileIdentity> page = new Page<>(1, 1000);  //阿里云OSS批量删除，一次最多1000个
 
-        do{
+        while(true){
             fileMapper.selectPage(page, queryWrapper);
             List<FileIdentity> files = page.getRecords();
+            if(files.isEmpty()) break;
             List<String> keys = files.stream().map(FileIdentity::getFilepath).collect(Collectors.toList());
 
             //从OSS中批量删除
@@ -169,7 +170,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
 
             //下一页
             page.setCurrent(page.getCurrent() + 1);
-        }while (page.getCurrent() <= page.getPages());
+        }
     }
 
     @Override
