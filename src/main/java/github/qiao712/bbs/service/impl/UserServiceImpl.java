@@ -133,7 +133,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         IPage<UserDto> page = pageQuery.getIPage();
         List<User> users = userMapper.selectUsers(page, user);
-        List<UserDto> userDtos = users.stream().map(this::userDtoMap).collect(Collectors.toList());
+        List<UserDto> userDtos = users.stream().map(this::convertToUserDto).collect(Collectors.toList());
 
         page.setRecords(userDtos);
         return page;
@@ -188,7 +188,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return userMapper.updateById(user) > 0;
     }
 
-    private UserDto userDtoMap(User user){
+    private UserDto convertToUserDto(User user){
         UserDto userDto = new UserDto();
         BeanUtils.copyProperties(user, userDto);
 
