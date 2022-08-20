@@ -9,8 +9,8 @@ import lombok.Data;
 public class ReplyMessageContent implements MessageContent {
     private Long postId;
     private String postTitle;
-    private Long replierId;
-    private String replierUsername;
+    private Long authorId;
+    private String authorUsername;
     private Long commentId;
     private String comment;
 }

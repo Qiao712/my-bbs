@@ -8,7 +8,9 @@ import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
+import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
 import github.qiao712.bbs.domain.entity.*;
+import github.qiao712.bbs.event.MessageEvent;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -16,12 +18,14 @@ import github.qiao712.bbs.mapper.ForumMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.CommentService;
 import github.qiao712.bbs.service.FileService;
+import github.qiao712.bbs.service.MessageService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,13 +40,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private PostMapper postMapper;
     @Autowired
-    private ForumMapper forumMapper;
-    @Autowired
     private FileService fileService;
     @Autowired
     private UserService userService;
     @Autowired
     private AttachmentMapper attachmentMapper;
+    @Autowired
+    private ApplicationEventPublisher publisher;
 
     @Override
     public boolean addComment(Comment comment) {
@@ -72,6 +76,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             }
         }
 
+        //创建评论，获取主键(插入附加时使用)
         boolean flag = commentMapper.insert(comment) > 0;
 
         //若为一级评论，则允许插入图片(附件)
@@ -94,6 +99,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
                 fileService.setTempFlags(imageFileIds, false);
             }
         }
+
+        //发送评论/回复消息
+        MessageEvent messageEvent = MessageEvent.buildCommentAddEvent(comment, this);
+        publisher.publishEvent(messageEvent);
 
         return flag;
     }

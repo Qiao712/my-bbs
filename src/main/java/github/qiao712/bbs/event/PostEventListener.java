@@ -27,10 +27,12 @@ public class PostEventListener implements ApplicationListener<PostEvent> {
 
             case UPDATE:{
                 searchService.updatePost(event.getPost());
+                break;
             }
 
             case DELETE:{
                 searchService.removePost(event.getPostId());
+                break;
             }
         }
     }

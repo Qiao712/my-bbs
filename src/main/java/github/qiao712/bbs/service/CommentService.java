@@ -8,6 +8,9 @@ import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.entity.Comment;
 
 public interface CommentService extends IService<Comment> {
+    /**
+     * 添加评论
+     */
     boolean addComment(Comment comment);
 
     /**

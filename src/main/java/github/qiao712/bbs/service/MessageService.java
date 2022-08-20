@@ -14,6 +14,9 @@ import java.util.List;
 
 public interface MessageService extends IService<Message> {
 
+    /**
+     * 发送消息
+     */
     boolean sendMessage(Long senderId, Long receiverId, MessageContent content);
 
     /**
