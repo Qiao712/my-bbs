@@ -16,14 +16,23 @@
 
     <select id="selectPrivateMessages" resultType="Message">
         SELECT * FROM t_message
-        WHERE ( receiver_id = #{userId1} AND sender_id = #{userId2} ) OR ( receiver_id = #{userId2} AND sender_id = #{userId1} ) AND type = 'private'
+        WHERE conversation_id = #{conversationId} AND type = 'private'
             <if test="after != null">
-                AND create_time >= #{after}
+                AND create_time > #{after}
             </if>
             <if test="before != null">
-                AND create_time &lt;= #{before}
+                AND create_time &lt; #{before}
             </if>
         ORDER BY create_time DESC
         LIMIT #{limit}
     </select>
+
+    <update id="acknowledgeMessages">
+        UPDATE t_message
+        SET is_acknowledged = true
+        WHERE id IN
+        <foreach collection="messageIds" item="id" open="(" close=")" separator="," nullable="true">
+            #{id}
+        </foreach>
+    </update>
 </mapper>

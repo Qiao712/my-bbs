@@ -86,7 +86,6 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             ConversationDto conversationDto = new ConversationDto();
 
             conversationDto.setCreateTime(message.getCreateTime());
-            conversationDto.setIsAcknowledged(message.getIsAcknowledged());
 
             PrivateMessageContent messageContent = JSON.parseObject(message.getContent(), PrivateMessageContent.class);
             conversationDto.setLatestMessage(messageContent.getText());
@@ -97,6 +96,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             conversationDto.setUserId(userId);
             conversationDto.setAvatarUrl(user.getAvatarUrl());
             conversationDto.setUsername(user.getUsername());
+
+            //获取会话内未读消息数量
+            LambdaQueryWrapper<Message> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Message::getIsAcknowledged, false);
+            queryWrapper.eq(Message::getConversationId, conversationId);
+            queryWrapper.eq(Message::getReceiverId, currentUserId);
+            conversationDto.setUnacknowledgedCount(messageMapper.selectCount(queryWrapper));
 
             conversationDtos.add(conversationDto);
         }
@@ -112,12 +118,22 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             limit = 100;
         }
 
-        List<Message> messages = messageMapper.selectPrivateMessages(currentUserId, receiverId, after, before, limit);
+        byte[] conversationId = getConversationId(currentUserId, receiverId);
+        List<Message> messages = messageMapper.selectPrivateMessages(conversationId, after, before, limit);
 
         List<MessageDto> messageDtos = new ArrayList<>(messages.size());
         for (Message message : messages) {
             messageDtos.add(convertToMessageDto(message, PrivateMessageContent.class));
         }
+
+        //确认消息
+        List<Long> messageIds = new ArrayList<>(messages.size());
+        for (Message message : messages) {
+            if(Objects.equals(message.getReceiverId(), currentUserId) && !message.getIsAcknowledged()){
+                messageIds.add(message.getId());
+            }
+        }
+        if(!messageIds.isEmpty()) messageMapper.acknowledgeMessages(messageIds);
 
         return messageDtos;
     }
@@ -185,7 +201,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private MessageDto convertToMessageDto(Message message, Class<? extends MessageContent> cls){
         MessageDto messageDto = new MessageDto();
         BeanUtils.copyProperties(message, messageDto);
-        messageDto.setMessageContent(JSON.parseObject(message.getContent(), cls));
+        messageDto.setContent(JSON.parseObject(message.getContent(), cls));
         return messageDto;
     }
 }

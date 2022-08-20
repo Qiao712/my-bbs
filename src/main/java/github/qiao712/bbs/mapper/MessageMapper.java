@@ -14,5 +14,7 @@ public interface MessageMapper extends BaseMapper<Message> {
 
     Message selectLatestMessageByConversationId(Byte[] conversationId);
 
-    List<Message> selectPrivateMessages(Long userId1, Long userId2, LocalDateTime after, LocalDateTime before, int limit);
+    List<Message> selectPrivateMessages(byte[] conversationId, LocalDateTime after, LocalDateTime before, int limit);
+
+    Integer acknowledgeMessages(List<Long> messageIds);
 }

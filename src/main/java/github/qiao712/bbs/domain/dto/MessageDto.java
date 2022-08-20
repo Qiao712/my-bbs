@@ -12,6 +12,6 @@ public class MessageDto {
     private Long receiverId;
     private String type;
     private Boolean isAcknowledged;
-    private MessageContent messageContent;
+    private MessageContent content;
     private LocalDateTime createTime;
 }

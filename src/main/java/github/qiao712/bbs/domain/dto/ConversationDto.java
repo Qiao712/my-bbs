@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
  */
 @Data
 public class ConversationDto {
-    private Boolean isAcknowledged;         //最新消息是否已读
     private String latestMessage;           //最后一条消息
+    private Long unacknowledgedCount;       //未读消息数量
     private LocalDateTime createTime;
 
     //对方用户信息
