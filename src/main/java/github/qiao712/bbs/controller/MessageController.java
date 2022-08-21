@@ -6,7 +6,6 @@ import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.ConversationDto;
 import github.qiao712.bbs.domain.dto.MessageDto;
 import github.qiao712.bbs.domain.dto.PrivateMessageDto;
-import github.qiao712.bbs.domain.entity.Message;
 import github.qiao712.bbs.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,13 +22,18 @@ public class MessageController {
     @Autowired
     private MessageService messageService;
 
+    @GetMapping
+    public Result<IPage<MessageDto>> listSystemMessages(@Validated PageQuery pageQuery){
+        return Result.succeed(messageService.listSystemMessages(pageQuery));
+    }
+
     @PostMapping("/private")
     public Result<Void> sendPrivateMessage(@Validated  @RequestBody PrivateMessageDto privateMessageDto){
         return Result.build(messageService.sendPrivateMessage(privateMessageDto.getReceiverId(), privateMessageDto.getText()));
     }
 
     @GetMapping("/conversations")
-    public Result<IPage<ConversationDto>> listConversations(PageQuery pageQuery){
+    public Result<IPage<ConversationDto>> listConversations(@Validated PageQuery pageQuery){
         return Result.succeed(messageService.listConversations(pageQuery));
     }
 
@@ -47,7 +51,7 @@ public class MessageController {
     }
 
     @GetMapping("/count")
-    public Result<Long> getUnacknowledgedMessageCount(){
-        return Result.succeed(messageService.getUnacknowledgedMessageCount());
+    public Result<Long> getUnacknowledgedSystemMessageCount(){
+        return Result.succeed(messageService.getUnacknowledgedSystemMessageCount());
     }
 }

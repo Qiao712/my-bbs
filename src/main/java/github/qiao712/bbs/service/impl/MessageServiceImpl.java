@@ -9,6 +9,7 @@ import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.ConversationDto;
 import github.qiao712.bbs.domain.dto.MessageDto;
 import github.qiao712.bbs.domain.dto.message.MessageContent;
+import github.qiao712.bbs.domain.dto.message.MessageType;
 import github.qiao712.bbs.domain.dto.message.PrivateMessageContent;
 import github.qiao712.bbs.domain.entity.Message;
 import github.qiao712.bbs.domain.entity.User;
@@ -27,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
@@ -47,7 +49,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         message.setIsAcknowledged(false);
 
         //两个用户之间的会话id
-        if(senderId != null && receiverId != null){
+        if(Objects.equals(message.getType(), "private") && senderId != null && receiverId != null){
             message.setConversationId(getConversationId(senderId, receiverId));
         }
 
@@ -102,6 +104,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             queryWrapper.eq(Message::getIsAcknowledged, false);
             queryWrapper.eq(Message::getConversationId, conversationId);
             queryWrapper.eq(Message::getReceiverId, currentUserId);
+            queryWrapper.eq(Message::getType, "private");
             conversationDto.setUnacknowledgedCount(messageMapper.selectCount(queryWrapper));
 
             conversationDtos.add(conversationDto);
@@ -150,7 +153,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
-    public Long getUnacknowledgedMessageCount() {
+    public Long getUnacknowledgedSystemMessageCount() {
         Long currentUserId = SecurityUtil.getCurrentUser().getId();
 
         LambdaQueryWrapper<Message> queryWrapper = new LambdaQueryWrapper<>();
@@ -161,9 +164,27 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
-    public IPage<MessageDto> listMessages(PageQuery pageQuery) {
+    public IPage<MessageDto> listSystemMessages(PageQuery pageQuery) {
+        Long currentUserId = SecurityUtil.getCurrentUser().getId();
 
-        return null;
+        LambdaQueryWrapper<Message> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Message::getReceiverId, currentUserId);
+        queryWrapper.ne(Message::getType, "private");
+        queryWrapper.orderByDesc(Message::getCreateTime);
+        IPage<Message> messagePage = messageMapper.selectPage(pageQuery.getIPage(), queryWrapper);
+        List<Message> messages = messagePage.getRecords();
+
+        //确认消息
+        List<Long> messageIds = new ArrayList<>(messages.size());
+        for (Message message : messages) {
+            if(Objects.equals(message.getReceiverId(), currentUserId) && !message.getIsAcknowledged()){
+                messageIds.add(message.getId());
+            }
+        }
+        if(!messageIds.isEmpty()) messageMapper.acknowledgeMessages(messageIds);
+
+        List<MessageDto> messageDtos = messages.stream().map(this::convertToMessageDto).collect(Collectors.toList());
+        return PageUtil.replaceRecords(messagePage, messageDtos);
     }
 
     /**
@@ -196,6 +217,14 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         }
 
         return conversationId;
+    }
+
+    /**
+     * 根据消息类型，反序列化content
+     */
+    private MessageDto convertToMessageDto(Message message){
+        String typeName = message.getType();
+        return convertToMessageDto(message, MessageType.getMessageContentTypeClass(typeName));
     }
 
     private MessageDto convertToMessageDto(Message message, Class<? extends MessageContent> cls){

@@ -47,10 +47,10 @@ public interface MessageService extends IService<Message> {
     /**
      * 获取其他消息的数量
      */
-    Long getUnacknowledgedMessageCount();
+    Long getUnacknowledgedSystemMessageCount();
 
     /**
-     * 获取除用户私信外的其他消息
+     * 获取通知信息(除用户私信外的其他消息)
      */
-    IPage<MessageDto> listMessages(PageQuery pageQuery);
+    IPage<MessageDto> listSystemMessages(PageQuery pageQuery);
 }
