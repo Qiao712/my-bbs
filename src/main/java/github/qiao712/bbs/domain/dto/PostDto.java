@@ -12,8 +12,9 @@ public class PostDto {
     private UserDto author;
     private String forumName;
     private Long forumId;
-    private Integer likeCount;
-    private Boolean liked;         //当前用户是否点赞
+    private Long likeCount;
+    private Long commentCount;
+    private Boolean liked;              //当前用户是否点赞
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

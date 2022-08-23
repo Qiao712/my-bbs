@@ -16,10 +16,7 @@ import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.ForumMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.service.CommentService;
-import github.qiao712.bbs.service.FileService;
-import github.qiao712.bbs.service.MessageService;
-import github.qiao712.bbs.service.UserService;
+import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
@@ -45,6 +42,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private UserService userService;
     @Autowired
     private AttachmentMapper attachmentMapper;
+    @Autowired
+    private StatisticsService statisticsService;
     @Autowired
     private ApplicationEventPublisher publisher;
 
@@ -100,9 +99,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             }
         }
 
+        //贴子评论数+1
+        postMapper.increaseCommentCount(comment.getPostId(), 1L);
+
         //发送评论/回复消息
         MessageEvent messageEvent = MessageEvent.buildCommentAddEvent(comment, this);
         publisher.publishEvent(messageEvent);
+
+        //标记贴子需要刷新热度值
+        statisticsService.markPostToFreshScore(comment.getPostId());
 
         return flag;
     }
@@ -166,13 +171,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public boolean removeComment(Long commentId) {
         Comment comment = commentMapper.selectById(commentId);
         if(comment == null) return false;
+        long deletedCommentCount = 0;
 
         if(comment.getParentId() == null){
             //该评论为一级评论
             //删除子评论
             Comment commentQuery = new Comment();
             commentQuery.setParentId(commentId);
-            commentMapper.delete(new QueryWrapper<>(commentQuery));
+            deletedCommentCount += commentMapper.delete(new QueryWrapper<>(commentQuery));
 
             //标记其引用的图片(附件)可以清理
             List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getPostId(), comment.getId());
@@ -185,12 +191,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             attachmentQuery.setCommentId(comment.getId());
             attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
         }else{
-            //二级评论
+            //二级评论(二级评论无需)
             //删除回复其的评论
             Comment commentQuery = new Comment();
             commentQuery.setRepliedId(commentId);
-            commentMapper.delete(new QueryWrapper<>(commentQuery));
+            deletedCommentCount += commentMapper.delete(new QueryWrapper<>(commentQuery));
         }
+
+        //更新评论数量
+        postMapper.increaseCommentCount(comment.getPostId(), -deletedCommentCount - 1);
+
+        //标记贴子需要刷新热度值
+        statisticsService.markPostToFreshScore(comment.getPostId());
 
         return commentMapper.deleteById(commentId) > 0;
     }
@@ -202,25 +214,4 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         commentQuery.setAuthorId(userId);
         return commentMapper.exists(new QueryWrapper<>(commentQuery));
     }
-
-//    private CommentDetailDto convertToCommentDetailDto(Comment comment){
-//        CommentDetailDto commentDetailDto = new CommentDetailDto();
-//
-//        commentDetailDto.setRepliedUserName( userService.getUsername(comment.get));
-//
-//        QueryWrapper<Post> postQueryWrapper = new QueryWrapper<>();
-//        postQueryWrapper.select("title");
-//        postQueryWrapper.select("forum_id");
-//        postQueryWrapper.eq("id", comment.getPostId());
-//        Post post = postMapper.selectOne(postQueryWrapper);
-//        commentDetailDto.setPostTitle(post.getTitle());
-//
-//        QueryWrapper<Forum> forumQueryWrapper = new QueryWrapper<>();
-//        forumQueryWrapper.select("name");
-//        forumQueryWrapper.eq("id", post.getForumId());
-//        Forum forum = forumMapper.selectOne(forumQueryWrapper);
-//        commentDetailDto.setForumName(forum.getName());
-//
-//        return commentDetailDto;
-//    }
 }

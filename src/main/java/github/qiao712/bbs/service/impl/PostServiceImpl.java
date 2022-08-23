@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +57,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private ApplicationEventPublisher publisher;
     @Autowired
     private SystemConfig systemConfig;
+    @Autowired
+    private StatisticsService statisticsService;
 
     @Override
     @Transactional
@@ -63,6 +66,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //设置作者id
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         post.setAuthorId(currentUser.getId());
+
+        //初始化贴子热度分数
+        post.setScore(statisticsService.computePostScore(0, 0, 0, LocalDateTime.now()));
 
         if(postMapper.insert(post) == 0){
             return false;
@@ -90,7 +96,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //发布添加事件，以同步至ElasticSearch
         publisher.publishEvent(PostEvent.buildCreatePostEvent(post, this));
-
         return true;
     }
 
@@ -117,6 +122,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public PostDto getPost(Long postId) {
+        //浏览量++
+        statisticsService.increasePostViewCount(postId);
+        //标记需要更新贴子热度分值
+        statisticsService.markPostToFreshScore(postId);
+
         Post post = postMapper.selectById(postId);
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
         return postDtoMap(post, currentUserId);
@@ -148,7 +158,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //设置likeCount字段
         List<Long> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
-        List<Integer> likeCountBatch = postMapper.getLikeCountBatch(postIds);
+        List<Long> likeCountBatch = postMapper.selectLikeCountBatch(postIds);
         for(int i = 0; i < postIds.size(); i++){
             posts.get(i).setLikeCount(likeCountBatch.get(i));
         }
@@ -168,8 +178,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //删除所有附件
         //标记其引用的图片(附件)可以清理
         List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfPost(postId);
-        if(!attachmentFileIds.isEmpty())
+        if(!attachmentFileIds.isEmpty()){
             fileService.setTempFlags(attachmentFileIds, true);
+        }
         //删除attachment记录
         Attachment attachmentQuery = new Attachment();
         attachmentQuery.setPostId(postId);

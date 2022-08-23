@@ -8,9 +8,19 @@ import java.util.List;
 
 @Mapper
 public interface PostMapper extends BaseMapper<Post> {
-    Integer getLikeCount(Long postId);
+    Integer increaseLikeCount(Long postId, Long delta);
 
-    List<Integer> getLikeCountBatch(List<Long> postIds);
+    Integer increaseViewCount(Long postId, Long delta);
 
-    Integer increaseLikeCount(Long postId, Integer delta);
+    Integer increaseCommentCount(Long postId, Long delta);
+
+    Long selectLikeCount(Long postId);
+
+    Long selectViewCount(Long postId);
+
+    List<Long> selectLikeCountBatch(List<Long> postIds);
+
+    List<Long> selectViewCountBatch(List<Long> postIds);
+
+    Integer updateScore(Long postId, Long score);
 }

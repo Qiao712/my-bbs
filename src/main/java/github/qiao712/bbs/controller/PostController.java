@@ -10,6 +10,7 @@ import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
 import github.qiao712.bbs.service.SearchService;
+import github.qiao712.bbs.service.StatisticsService;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;

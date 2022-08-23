@@ -36,5 +36,17 @@ public class Post extends BaseEntity {
 
     @ApiModelProperty("点赞数")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定点赞数量")
-    private Integer likeCount;
+    private Long likeCount;
+
+    @ApiModelProperty("浏览量")
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定浏览量")
+    private Long viewCount;
+
+    @ApiModelProperty
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定评论数量")
+    private Long commentCount;
+
+    @ApiModelProperty("热度分值")
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定贴子热度分值")
+    private Long score;
 }

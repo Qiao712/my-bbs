@@ -9,6 +9,7 @@ import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.entity.Comment;
 import github.qiao712.bbs.service.CommentService;
+import github.qiao712.bbs.service.StatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

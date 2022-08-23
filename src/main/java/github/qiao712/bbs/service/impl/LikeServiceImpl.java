@@ -8,6 +8,7 @@ import github.qiao712.bbs.mapper.PostLikeMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.LikeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import github.qiao712.bbs.service.StatisticsService;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,8 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     private PostLikeMapper postLikeMapper;
     @Autowired
     private PostMapper postMapper;
+    @Autowired
+    private StatisticsService statisticsService;
 
     @Override
     @Transactional
@@ -44,7 +47,10 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
             throw new ServiceException("不可重复点赞");
         }
 
-        return postMapper.increaseLikeCount(postId, 1) > 0 && postLikeMapper.insert(postLike) > 0;
+        //标记需要更新贴子热度分值
+        statisticsService.markPostToFreshScore(postId);
+
+        return postMapper.increaseLikeCount(postId, 1L) > 0 && postLikeMapper.insert(postLike) > 0;
     }
 
     @Override
@@ -61,7 +67,10 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
             throw new ServiceException("未点赞");
         }
 
-        return postMapper.increaseLikeCount(postId, -1) > 0 && postLikeMapper.delete(new QueryWrapper<>(postLike)) > 0;
+        //标记需要更新贴子热度分值
+        statisticsService.markPostToFreshScore(postId);
+
+        return postMapper.increaseLikeCount(postId, -1L) > 0 && postLikeMapper.delete(new QueryWrapper<>(postLike)) > 0;
     }
 
     @Override
