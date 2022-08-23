@@ -187,13 +187,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
 
         //删除所有评论
-        //将repliedId、parentId设为null，防止外键阻止删除
-        UpdateWrapper<Comment> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.set("replied_id", null);
-        updateWrapper.set("parent_id", null);
-        updateWrapper.eq("post_id", postId);
-        commentMapper.update(null, updateWrapper);
-        //删除
         Comment commentQuery = new Comment();
         commentQuery.setPostId(postId);
         commentMapper.delete(new QueryWrapper<>(commentQuery));
