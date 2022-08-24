@@ -28,10 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,6 +56,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private SystemConfig systemConfig;
     @Autowired
     private StatisticsService statisticsService;
+
+    //Post中允许排序的列
+    private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
 
     @Override
     @Transactional
@@ -137,10 +137,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         Post postQuery = new Post();
         postQuery.setForumId(forumId);
         postQuery.setAuthorId(authorId);
-        IPage<Post> postPage = postMapper.selectPage(pageQuery.getIPage(), new QueryWrapper<>(postQuery));
-        List<Post> posts = postPage.getRecords();
+        IPage<Post> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
+        postPage = postMapper.selectPage(postPage, new QueryWrapper<>(postQuery));
 
         //to PostDto
+        List<Post> posts = postPage.getRecords();
         List<PostDto> postDtos = new ArrayList<>(posts.size());
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
         for (Post post : posts) {
