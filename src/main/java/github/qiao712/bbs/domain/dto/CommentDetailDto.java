@@ -10,5 +10,6 @@ public class CommentDetailDto extends Comment {
     private String postTitle;
     private Long forumId;
     private String forum;
+    private String authorUsername;
     private String repliedUserName;    //被回复的用户的用户
 }

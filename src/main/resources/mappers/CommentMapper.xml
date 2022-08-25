@@ -4,35 +4,47 @@
     <resultMap id="commentDetailDtoMap" type="github.qiao712.bbs.domain.dto.CommentDetailDto">
         <id property="postId" column="post_id"/>
         <id property="repliedId" column="replied_id"/>
-        <association property="repliedUserName" column="replied_id" select="getRepliedUserName"/>
-        <association property="forumId" column="post_id" select="getForumId"/>
-        <association property="forum" column="post_id" select="getForumName"/>
-        <association property="postTitle" column="post_id" select="getPostTitle"/>
+        <id property="authorId" column="author_id"/>
+        <association property="repliedUserName" column="replied_id" select="selectRepliedUserName"/>
+        <association property="forumId" column="post_id" select="selectForumId"/>
+        <association property="forum" column="post_id" select="selectForumName"/>
+        <association property="postTitle" column="post_id" select="selectPostTitle"/>
+        <association property="authorUsername" column="author_id" select="selectAuthorUsername"/>
     </resultMap>
 
     <select id="listCommentDetailDtos" resultMap="commentDetailDtoMap">
-        SELECT * FROM t_comment WHERE author_id = #{authorId}
+        SELECT * FROM t_comment
+        <where>
+            <if test="authorId != null">
+                author_id = #{authorId}
+            </if>
+        </where>
     </select>
 
     <!--获取被回复的评论的作者的name-->
-    <select id="getRepliedUserName" resultType="String">
+    <select id="selectRepliedUserName" resultType="String">
         SELECT username FROM t_user as u, t_comment as c1, t_comment as c2
         WHERE c1.id = #{commentId} AND c1.replied_id = c2.id AND c2.author_id = u.id
     </select>
 
     <!--获取或评论所在贴子的title-->
-    <select id="getPostTitle" resultType="String">
+    <select id="selectPostTitle" resultType="String">
         SELECT title FROM t_post WHERE id = #{postId}
     </select>
 
     <!--获取评论所在板块的id-->
-    <select id="getForumId" resultType="Long">
+    <select id="selectForumId" resultType="Long">
         SELECT forum_id FROM t_post WHERE id = #{postId}
     </select>
 
     <!--获取评论所在板块的名称-->
-    <select id="getForumName" resultType="String">
+    <select id="selectForumName" resultType="String">
         SELECT f.name FROM t_post as p, t_forum as f
         WHERE p.id = #{postId} AND p.forum_id = f.id
+    </select>
+
+    <!--获取作者用户名-->
+    <select id="selectAuthorUsername" resultType="String">
+        SELECT username FROM t_user WHERE id = #{authorId}
     </select>
 </mapper>

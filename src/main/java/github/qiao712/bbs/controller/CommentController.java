@@ -28,13 +28,24 @@ public class CommentController {
     }
 
     @GetMapping
-    public Result<IPage<CommentDto>> listComments(PageQuery pageQuery, Long postId, Long parentCommentId){
+    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long postId, Long parentCommentId){
         return Result.succeed(commentService.listComments(pageQuery, postId, parentCommentId));
     }
 
-    @GetMapping("/my")
-    public Result<IPage<CommentDetailDto>> listCommentsByAuthor(PageQuery pageQuery, @RequestParam Long authorId){
-        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authorId));
+    /**
+     * 更加详细的评论对象
+     * 用于后台管理评论列表，用户个人的评论列表
+     */
+    @GetMapping("/details")
+    public Result<IPage<CommentDetailDto>> listCommentsByAuthor(@Validated PageQuery pageQuery,
+                                                                @AuthenticationPrincipal AuthUser currentUser,
+                                                                String authorUsername){
+        if(! currentUser.getRole().equals("ROLE_ADMIN") && authorUsername == null){
+            //禁止普通用户查询全部评论(不指定作者)
+            throw new AccessDeniedException("无权查看全部评论");
+        }
+
+        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authorUsername));
     }
 
     @DeleteMapping("/{commentId}")

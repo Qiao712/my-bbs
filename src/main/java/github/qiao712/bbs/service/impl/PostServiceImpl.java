@@ -1,8 +1,10 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
@@ -133,12 +135,17 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId) {
-        Post postQuery = new Post();
-        postQuery.setForumId(forumId);
-        postQuery.setAuthorId(authorId);
+    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, String authorUsername) {
+        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(forumId != null, Post::getForumId, forumId);
+        if(authorUsername != null){
+            Long authorId = userService.getUserIdByUsername(authorUsername);
+            queryWrapper.eq(Post::getAuthorId, authorId);
+        }
+
         IPage<Post> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
-        postPage = postMapper.selectPage(postPage, new QueryWrapper<>(postQuery));
+
+        postPage = postMapper.selectPage(postPage, queryWrapper);
 
         //to PostDto
         List<Post> posts = postPage.getRecords();

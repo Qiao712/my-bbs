@@ -16,6 +16,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -50,6 +52,7 @@ public class UserController {
     public Result<IPage<UserDto>> listUsers(PageQuery pageQuery, UserDto condition){
         return Result.succeed(userService.listUsers(pageQuery, condition));
     }
+
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PutMapping("/{userId}/status/{enable}")

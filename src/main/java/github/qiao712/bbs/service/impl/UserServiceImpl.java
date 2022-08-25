@@ -1,5 +1,6 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -101,6 +102,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.select("username");
         User user = userMapper.selectOne(queryWrapper);
         return user != null ? user.getUsername() : null;
+    }
+
+    @Override
+    public Long getUserIdByUsername(String username) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, username);
+        queryWrapper.select(User::getId);
+        User user = userMapper.selectOne(queryWrapper);
+        return user != null ? user.getId() : null;
     }
 
     @Override

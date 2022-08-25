@@ -47,8 +47,8 @@ public class PostController {
     }
 
     @GetMapping
-    public Result<IPage<PostDto>> listPosts(@Validated PageQuery pageQuery, Long forumId, Long authorId){
-        return Result.succeed(postService.listPosts(pageQuery, forumId, authorId));
+    public Result<IPage<PostDto>> listPosts(@Validated PageQuery pageQuery, Long forumId, String authorUsername){
+        return Result.succeed(postService.listPosts(pageQuery, forumId, authorUsername));
     }
 
     @GetMapping("/search")
