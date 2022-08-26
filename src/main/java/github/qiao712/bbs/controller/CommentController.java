@@ -9,6 +9,7 @@ import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.entity.Comment;
 import github.qiao712.bbs.service.CommentService;
+import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 public class CommentController {
     @Autowired
     private CommentService commentService;
+    @Autowired
+    private LikeService likeService;
 
     @PostMapping
     public Result<Void> addComment(@Validated(AddGroup.class) @RequestBody Comment comment){
@@ -55,5 +58,16 @@ public class CommentController {
         }else{
             throw new AccessDeniedException("无权删除该评论");
         }
+    }
+
+    //点赞------------------------------
+    @GetMapping("/{commentId}/like")
+    public Result<Void> likeComment(@PathVariable("commentId") Long commentId){
+        return Result.build(likeService.likeComment(commentId));
+    }
+
+    @GetMapping("/{commentId}/undo-like")
+    public Result<Void> undoLikeComment(@PathVariable("commentId") Long commentId){
+        return Result.build(likeService.undoLikeComment(commentId));
     }
 }

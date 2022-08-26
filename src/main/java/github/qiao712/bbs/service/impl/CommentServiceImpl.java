@@ -41,6 +41,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private UserService userService;
     @Autowired
+    private LikeService likeService;
+    @Autowired
     private AttachmentMapper attachmentMapper;
     @Autowired
     private StatisticsService statisticsService;
@@ -137,12 +139,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             userDtoMap.put(authorId, userDto);
         }
 
-        //comment id --> author
+        //comment id --> author username map
         Map<Long, String> authorUsernameMap = new HashMap<>(authorIds.size());
         for (Comment comment : comments) {
             UserDto author = userDtoMap.get(comment.getAuthorId());
             authorUsernameMap.put(comment.getId(), author != null ? author.getUsername() : null);
         }
+
+        //当前用户ID，用于判断是否已点赞
+        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
 
         //组装CommentDto
         List<CommentDto> commentDtos = new ArrayList<>();
@@ -155,6 +160,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
             //user replied
             commentDto.setRepliedUserName(authorUsernameMap.get(comment.getRepliedId()));
+
+            //当前用户是否点赞
+            commentDto.setLiked(likeService.hasLikedComment(comment.getId(), currentUserId));
 
             commentDtos.add(commentDto);
         }

@@ -10,7 +10,7 @@ public interface LikeService extends IService<PostLike> {
     boolean likePost(Long postId);
 
     /**
-     * 取消点赞
+     * 取消贴子点赞
      */
     boolean undoLikePost(Long postId);
 
@@ -18,4 +18,19 @@ public interface LikeService extends IService<PostLike> {
      * 检查用户对贴子点赞
      */
     boolean hasLikedPost(Long postId, Long userId);
+
+    /**
+     * 评论点赞
+     */
+    boolean likeComment(Long commentId);
+
+    /**
+     * 取消评论点赞
+     */
+    boolean undoLikeComment(Long commentId);
+
+    /**
+     * 检查用户对评论点赞
+     */
+    boolean hasLikedComment(Long commentId, Long userId);
 }

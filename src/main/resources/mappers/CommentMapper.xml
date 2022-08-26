@@ -47,4 +47,9 @@
     <select id="selectAuthorUsername" resultType="String">
         SELECT username FROM t_user WHERE id = #{authorId}
     </select>
+
+
+    <update id="increaseLikeCount">
+        UPDATE t_comment SET like_count = like_count + #{delta} WHERE id = #{commentId}
+    </update>
 </mapper>
