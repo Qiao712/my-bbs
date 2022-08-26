@@ -3,7 +3,7 @@
 <mapper namespace="github.qiao712.bbs.mapper.MessageMapper">
     <select id="selectConversationIds" resultType="byte[]">
         SELECT DISTINCT conversation_id FROM t_message
-        WHERE receiver_id = #{userId} OR sender_id = #{userId} AND type = 'private'
+        WHERE (receiver_id = #{userId} OR sender_id = #{userId}) AND type = 'private'
         ORDER BY create_time DESC
     </select>
 
