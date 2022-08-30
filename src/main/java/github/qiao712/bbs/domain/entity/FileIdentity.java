@@ -23,4 +23,7 @@ public class FileIdentity extends BaseEntity {
 
     @ApiModelProperty("是否为临时文件")
     private Boolean isTemporary;
+
+    @ApiModelProperty("文件来源(分类)(用于标识用途)")
+    private String source;
 }

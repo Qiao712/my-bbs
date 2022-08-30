@@ -12,10 +12,10 @@ public interface PostService extends IService<Post> {
     boolean addPost(Post post);
 
     /**
-     * 上传图片
+     * 上传贴子中插入的图片
      * @return 图片的url
      */
-    String uploadPicture(MultipartFile picture);
+    String uploadImage(MultipartFile image);
 
     PostDto getPost(Long postId);
 

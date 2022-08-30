@@ -26,9 +26,10 @@ sys:
   remember-me-token-valid-time: 604800   #7天
   default-role-id: 1
   max-avatar-size: 1024000               #1000KiB
-  max-post-picture-size: 2097152         #2MiB
-  max-post-picture-num: 20
+  max-post-image-size: 2097152           #2MiB
+  max-post-image-num: 20
   max-logo-image-size: 2097152           #2MiB
+  min-temp-file-life: 86400              #1天
 
   # 阿里云OOS配置
   aliOSS:

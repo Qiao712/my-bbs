@@ -9,18 +9,14 @@ import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
-import github.qiao712.bbs.service.SearchService;
-import github.qiao712.bbs.service.StatisticsService;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.constraints.Max;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
@@ -38,10 +34,10 @@ public class PostController {
         return Result.build(postService.addPost(post));
     }
 
-    @PostMapping("/pictures")
+    @PostMapping("/images")
     @PreAuthorize("isAuthenticated()")
-    public Result<String> uploadPicture(@RequestPart("picture") MultipartFile pictureFile){
-        return Result.succeed("图片上传成功", postService.uploadPicture(pictureFile));
+    public Result<String> uploadImage(@RequestPart("image") MultipartFile imageFile){
+        return Result.succeed("图片上传成功", postService.uploadImage(imageFile));
     }
 
     @GetMapping("/{postId}")

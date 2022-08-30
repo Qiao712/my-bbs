@@ -39,17 +39,22 @@ public class SystemConfig {
     /**
      * 贴子中图片最大size (byte)
      */
-    private Long maxPostPictureSize;
+    private Long maxPostImageSize;
 
     /**
      * 贴子中图片最大数量 (byte)
      */
-    private Long maxPostPictureNum;
+    private Long maxPostImageNum;
 
     /**
      * 板块logo图片最大size (byte)
      */
     private Long maxLogoImageSize;
+
+    /**
+     * 临时文件最短存在时间 (s)
+     */
+    private Long minTempFileLife;
 
     /**
      * ElasticSearch相关配置

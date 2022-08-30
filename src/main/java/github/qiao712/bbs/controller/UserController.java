@@ -36,8 +36,8 @@ public class UserController {
     }
 
     @PostMapping("/{userId}/avatar")
-    @PreAuthorize("isAuthenticated() and userId == currentUser.id")
-    public Result<Void> setUserAvatar(@PathVariable("userId") Long userId,
+    @PreAuthorize("isAuthenticated() and #userId == #currentUser.id")
+    public Result<Void> setMyAvatar(@PathVariable("userId") Long userId,
                                       @AuthenticationPrincipal AuthUser currentUser,
                                       @RequestPart("file") MultipartFile file){
         return Result.build(userService.setAvatar(userId, file));

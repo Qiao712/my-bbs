@@ -12,6 +12,7 @@ import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.exception.FileUploadException;
+import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.FileMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.util.FileUtil;
@@ -31,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,6 +50,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     private String bucketName;
     private String endpoint;
 
+    //初始化配置
     @Override
     public void afterPropertiesSet() throws Exception {
         this.bucketName = systemConfig.getAliOSS().getBucketName();
@@ -55,10 +58,30 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    @Transactional
-    public FileIdentity uploadFile(String path, String fileType, InputStream inputStream, boolean isTemporary) {
-        String filename = generatorFileName() + (fileType != null ? ("." + fileType) : "");
-        String filepath = path + '/' + filename;
+    public FileIdentity uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType, boolean isTemporary) {
+        //检查文件是否合法
+        String fileType = FileUtil.getSuffix(file.getOriginalFilename());
+        if(legalType != null && !legalType.contains(fileType)) throw new ServiceException("文件类型非法");
+        if(file.getSize() > maxSize) throw new ServiceException("文件大小超出限制");
+
+        try(InputStream inputStream = file.getInputStream()){
+            return uploadFile(source, fileType, inputStream, isTemporary);
+        } catch (IOException e) {
+            throw new FileUploadException(e);
+        }
+    }
+
+    @Override
+    public FileIdentity uploadImage(String source, MultipartFile file, Long maxSize, boolean isTemporary) {
+        String fileType = FileUtil.getSuffix(file.getOriginalFilename());
+        if(! FileUtil.isPictureFile(fileType)) throw new ServiceException("非图片文件");
+
+        return uploadFile(source, file, maxSize, null, isTemporary);
+    }
+
+    private FileIdentity uploadFile(String source, String type, InputStream inputStream, boolean isTemporary) {
+        String filename = generatorFileName() + (type != null ? ("." + type) : "");
+        String filepath = source + '/' + filename;
 
         try{
             PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, filepath, inputStream);
@@ -76,7 +99,8 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
 
         FileIdentity fileIdentity = new FileIdentity();
         fileIdentity.setFilepath(filepath);
-        fileIdentity.setType(fileType);
+        fileIdentity.setSource(source);
+        fileIdentity.setType(type);
         fileIdentity.setIsTemporary(isTemporary);
         fileIdentity.setUploaderId(SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null);  //文件上传者
         fileMapper.insert(fileIdentity);
@@ -85,20 +109,9 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public FileIdentity uploadFile(String path, MultipartFile file, boolean isTemporary) {
-        try(InputStream inputStream = file.getInputStream()){
-            String fileType = FileUtil.getSuffix(file.getOriginalFilename());
-            return uploadFile(path, fileType, inputStream, isTemporary);
-        } catch (IOException e) {
-            throw new FileUploadException(e);
-        }
-    }
-
-    @Override
     public boolean setTempFlags(List<Long> fileIds, boolean isTemporary) {
         return fileMapper.updateTempFlag(fileIds, isTemporary) > 0;
     }
-
 
     @Override
     public String getFileUrl(Long fileId) {
@@ -139,6 +152,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     public void clearTemporaryFile() {
         QueryWrapper<FileIdentity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("is_temporary", true);
+        queryWrapper.le("is_temporary", LocalDateTime.now().minusSeconds(systemConfig.getMinTempFileLife()));
         Page<FileIdentity> page = new Page<>(1, 1000);  //阿里云OSS批量删除，一次最多1000个
 
         while(true){
