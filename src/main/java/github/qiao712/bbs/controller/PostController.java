@@ -14,6 +14,7 @@ import github.qiao712.bbs.service.StatisticsService;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -32,11 +33,13 @@ public class PostController {
     private LikeService likeService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> addPost(@Validated(AddGroup.class) @RequestBody Post post){
         return Result.build(postService.addPost(post));
     }
 
     @PostMapping("/pictures")
+    @PreAuthorize("isAuthenticated()")
     public Result<String> uploadPicture(@RequestPart("picture") MultipartFile pictureFile){
         return Result.succeed("图片上传成功", postService.uploadPicture(pictureFile));
     }
@@ -59,21 +62,20 @@ public class PostController {
     }
 
     @DeleteMapping("/{postId}")
-    public Result<Void> removePost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){
-        if(currentUser.getRole().equals("ROLE_ADMIN") || postService.isAuthor(postId, currentUser.getId())){
-            return Result.build(postService.removePost(postId));
-        }else{
-            throw new AccessDeniedException("无权删除该贴子");
-        }
+    @PreAuthorize("isAuthenticated() and postService.isAuthor(postId, currentUser.id)")
+    public Result<Void> removeMyPost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){
+        return Result.build(postService.removePost(postId));
     }
 
     //-----------------------------------------
     @GetMapping("/{postId}/like")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> likePost(@PathVariable("postId") Long postId){
         return Result.build(likeService.likePost(postId));
     }
 
     @GetMapping("/{postId}/undo-like")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> undoLikePost(@PathVariable("postId") Long postId){
         return Result.build(likeService.undoLikePost(postId));
     }

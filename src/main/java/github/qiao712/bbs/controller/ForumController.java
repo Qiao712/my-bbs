@@ -35,33 +35,4 @@ public class ForumController {
     public Result<List<Forum>> listAllForums(){
         return Result.succeed(forumService.listAllForums());
     }
-
-    @PostMapping
-    public Result<Void> addForum(@Validated(AddGroup.class) @RequestBody Forum forum){
-        return Result.build(forumService.addForum(forum));
-    }
-
-    @DeleteMapping("/{forumId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public Result<Void> removeForum(@PathVariable("forumId") Long forumId){
-        return Result.build(forumService.removeById(forumId));
-    }
-
-    @PutMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public Result<Void> updateForum(@Validated(UpdateGroup.class) @RequestBody Forum forum){
-        return Result.build(forumService.updateForum(forum));
-    }
-
-    @GetMapping("/categories")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public Result<List<String>> listCategories(){
-        return Result.succeed(forumService.listCategories());
-    }
-
-    @PutMapping("/{forumId}/logo")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public Result<Void> setForumLogo(@PathVariable Long forumId, @RequestPart("file") MultipartFile file){
-        return Result.build(forumService.setForumLogo(forumId, file));
-    }
 }

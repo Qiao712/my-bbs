@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthenticationController {
     @Autowired
-    private SystemConfig systemConfig;
-    @Autowired
     private AuthenticationService authenticationService;
 
     @PostMapping("/login")

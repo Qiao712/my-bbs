@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
+@Service("postService")
 @Transactional
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
     @Autowired

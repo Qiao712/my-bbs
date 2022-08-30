@@ -4,7 +4,6 @@ import github.qiao712.bbs.security.TokenFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,15 +28,10 @@ public class SecurityConfig {
     @Autowired
     private AuthenticationEntryPoint authenticationEntryPoint;
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity
-                .authorizeHttpRequests((authz) -> authz
-                        .antMatchers(HttpMethod.OPTIONS).permitAll()
-                        .antMatchers("/api/auth/login", "/api/users/register").permitAll()
-                        .antMatchers("/test").permitAll()
-                        .anyRequest().authenticated()
-                );
+        httpSecurity.authorizeHttpRequests((authz) -> authz.anyRequest().permitAll());
 
         httpSecurity
                 //禁用CSRF

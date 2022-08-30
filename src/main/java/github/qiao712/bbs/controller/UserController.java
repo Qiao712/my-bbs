@@ -30,12 +30,13 @@ public class UserController {
     }
 
     @GetMapping("/self")
+    @PreAuthorize("isAuthenticated()")
     public Result<User> getCurrentUser(@AuthenticationPrincipal AuthUser authUser){
         return Result.succeed(userService.getUser(authUser.getId()));
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN') or #userId == #currentUser.id")
     @PostMapping("/{userId}/avatar")
+    @PreAuthorize("isAuthenticated() and userId == currentUser.id")
     public Result<Void> setUserAvatar(@PathVariable("userId") Long userId,
                                       @AuthenticationPrincipal AuthUser currentUser,
                                       @RequestPart("file") MultipartFile file){
@@ -47,28 +48,8 @@ public class UserController {
         return Result.succeedNotNull(userService.getUser(userId));
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @GetMapping
     public Result<IPage<UserDto>> listUsers(PageQuery pageQuery, UserDto condition){
         return Result.succeed(userService.listUsers(pageQuery, condition));
-    }
-
-
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/{userId}/status/{enable}")
-    public Result<Void> setUserStatus(@PathVariable("userId") Long userId, @PathVariable("enable") Boolean enable){
-        return Result.build(userService.setUserStatus(userId, enable));
-    }
-
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping
-    public Result<Void> updateUser(@Validated(UpdateGroup.class) @RequestBody User user){
-        return Result.build(userService.updateUser(user));
-    }
-
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @DeleteMapping("/{userId}")
-    public Result<Void> removeUser(@PathVariable("userId") Long userId){
-        return Result.build(userService.removeUser(userId));
     }
 }

@@ -16,11 +16,4 @@ public class FileController {
     public Result<String> getFileUrl(@PathVariable("fileId") Long fileId){
         return Result.succeed("", fileService.getFileUrl(fileId));
     }
-
-    @GetMapping("/clear-temp")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public Result<Void> clearTemporaryFile(){
-        fileService.clearTemporaryFile();
-        return Result.succeed();
-    }
 }

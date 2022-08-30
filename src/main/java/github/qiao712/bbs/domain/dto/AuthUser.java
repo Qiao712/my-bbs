@@ -7,6 +7,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 用户核心信息
@@ -19,10 +22,15 @@ public class AuthUser implements UserDetails {
 
     private String password;
 
+    private Long roleId;
+
     private String role;
 
     @JSONField(serialize = false)
     private Boolean enable;
+
+    @JSONField(serialize = false)
+    private List<SimpleGrantedAuthority> authorities;
 
     public Long getId() {
         return id;
@@ -30,6 +38,18 @@ public class AuthUser implements UserDetails {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getRoleId() {
+        return roleId;
+    }
+
+    public void setRoleId(Long roleId) {
+        this.roleId = roleId;
+    }
+
+    public Boolean getEnable() {
+        return enable;
     }
 
     public String getRole() {
@@ -63,8 +83,11 @@ public class AuthUser implements UserDetails {
     @Override
     @JSONField(serialize = false)
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        //以角色表示权限
-        return Collections.singletonList(new SimpleGrantedAuthority(role));
+        return authorities;
+    }
+
+    public void setAuthorities(List<SimpleGrantedAuthority> authorities) {
+        this.authorities = authorities;
     }
 
     @Override

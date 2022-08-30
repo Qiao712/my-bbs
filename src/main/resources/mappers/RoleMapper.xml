@@ -1,5 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="github.qiao712.bbs.mapper.RoleMapper">
+    <resultMap id="roleAuthorityMap" type="Role">
+        <id column="id" property="id"/>
+        <collection property="authorities" column="id" select="selectAuthorities"/>
+    </resultMap>
 
+    <select id="selectRole" resultMap="roleAuthorityMap">
+        SELECT * FROM t_role WHERE id = #{id}
+    </select>
+
+    <select id="selectAuthorities" resultType="String">
+        SELECT a.authority FROM t_authority a, t_role_authority ra
+        WHERE a.id = ra.authority_id AND ra.role_id = #{roleId}
+    </select>
+
+    <insert id="grantAuthorities">
+        INSERT INTO t_role_authority(role_id, authority_id) VALUES
+        <foreach collection="authorities" item="authority" separator=",">
+            (#{roleId}, (SELECT id FROM t_authority WHERE authority = #{authority}))
+        </foreach>
+    </insert>
+
+    <delete id="revokeAuthorities">
+        DELETE FROM t_role_authority WHERE role_id = #{roleId} AND authority_id IN
+        (
+            SELECT id FROM t_authority WHERE authority IN
+            <foreach collection="authorities" item="authority" open="(" close=")" separator=",">
+                #{authority}
+            </foreach>
+        )
+    </delete>
+
+    <delete id="revokeAllAuthorities">
+        DELETE FROM t_role_authority WHERE role_id = #{role_id}
+    </delete>
 </mapper>
