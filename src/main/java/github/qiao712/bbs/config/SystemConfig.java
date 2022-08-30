@@ -12,6 +12,11 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "sys")
 public class SystemConfig {
     /**
+     * 论坛名称
+     */
+    private String bbsName;
+
+    /**
      * token有时间 (ms)
      */
     private Integer tokenValidTime;

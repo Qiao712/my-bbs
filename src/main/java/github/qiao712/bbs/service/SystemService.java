@@ -1,6 +1,9 @@
 package github.qiao712.bbs.service;
 
 import github.qiao712.bbs.domain.dto.Statistic;
+import github.qiao712.bbs.domain.entity.Advertisement;
+
+import java.util.List;
 
 public interface SystemService {
     /**
@@ -8,4 +11,13 @@ public interface SystemService {
      * 贴子数量、评论数量、用户数量
      */
     Statistic getStatistic();
+
+    //首页广告 增删改查--------------------------------------
+    boolean addAdvertisement(Advertisement advertisement);
+
+    List<Advertisement> listAdvertisement();
+
+    boolean removeAdvertisement(Long advertisingId);
+
+    boolean updateAdvertisement(Advertisement advertisement);
 }
