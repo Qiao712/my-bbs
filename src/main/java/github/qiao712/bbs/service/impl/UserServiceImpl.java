@@ -45,6 +45,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private FileService fileService;
 
+    //头像文件source标识
+    private final static String AVATAR_IMAGE_SOURCE = "avatar-image";
+
     /**
      * 实现UserDetailsService的方法，提供用户信息
      */
@@ -177,20 +180,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean setAvatar(Long userId, MultipartFile file) {
-        if(file.getSize() > systemConfig.getMaxAvatarSize()){
-            throw new ServiceException("头像图片大小超过" + systemConfig.getMaxAvatarSize() + "bytes");
-        }
-        if(!FileUtil.isPictureFile(file.getOriginalFilename())){
-            throw new ServiceException("文件非图片类型");
-        }
-
         //删除原头像图片
         User originUser = userMapper.selectById(userId);
         if(originUser == null) return false;
         fileService.deleteFile(originUser.getAvatarFileId());
 
         //保存图片
-        FileIdentity avatar = fileService.uploadFile("user_avatar", file, false);
+        FileIdentity avatar = fileService.uploadImage(AVATAR_IMAGE_SOURCE, file, systemConfig.getMaxAvatarSize(),false);
 
         User user = new User();
         user.setId(userId);

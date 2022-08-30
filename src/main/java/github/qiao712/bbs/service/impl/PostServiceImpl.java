@@ -2,9 +2,7 @@ package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
@@ -13,12 +11,10 @@ import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.event.PostEvent;
-import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.*;
-import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
@@ -62,6 +58,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     //Post中允许排序的列
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
 
+    //贴子中图片的source(标识)
+    private final static String POST_IMAGE_SOURCE = "post-image";
+
     @Override
     @Transactional
     public boolean addPost(Post post) {
@@ -79,13 +78,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //解析出引用的图片
         List<String> urls = HtmlUtil.getImageUrls(post.getContent());
 
-        //如果文件的上传者是该该用户(贴子作者)，则记录该贴子对图片的引用(记录为该贴子的一个附件)
+        //如果文件的上传者是该该用户(贴子作者)，且上传来源为贴子图片，则记录该贴子对图片的引用(记录为该贴子的一个附件)
         List<Long> imageFileIds = new ArrayList<>(urls.size());
         for (String url : urls) {
             FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
-            if(imageFileIdentity == null) continue;  //为外部连接
+            if(imageFileIdentity == null) continue;  //为外部链接
 
-            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())){
+            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId()) && POST_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
                 imageFileIds.add(imageFileIdentity.getId());
             }
         }
@@ -103,23 +102,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     @Transactional
-    public String uploadPicture(MultipartFile picture) {
-        //检查文件大小限制
-        if(picture.getSize() > systemConfig.getMaxPostPictureSize()){
-            throw new ServiceException("文件大小超过" + systemConfig.getMaxPostPictureSize() + "bytes");
-        }
-        if(!FileUtil.isPictureFile(picture.getOriginalFilename())){
-            throw new ServiceException("文件非图片类型");
-        }
-
+    public String uploadImage(MultipartFile image) {
         //上传为临时文件
-        FileIdentity fileIdentity = fileService.uploadFile("post_picture", picture, true);
+        FileIdentity fileIdentity = fileService.uploadImage(POST_IMAGE_SOURCE, image, systemConfig.getMaxPostImageSize(), true);
 
-        if(fileIdentity != null){
-            return fileService.getFileUrl(fileIdentity.getId());
-        }else{
-            return null;
-        }
+        if(fileIdentity != null) return fileService.getFileUrl(fileIdentity.getId());
+        else return null;
     }
 
     @Override

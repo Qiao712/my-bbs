@@ -30,6 +30,9 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
     @Autowired
     private FileService fileService;
 
+    //论坛logo文件source标识
+    private final static String FORUM_LOGO_SOURCE = "forum-logo";
+
     @Override
     public Forum getForum(Long forumId) {
         Forum forum = forumMapper.selectById(forumId);
@@ -90,20 +93,13 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
 
     @Override
     public boolean setForumLogo(Long forumId, MultipartFile file) {
-        if(file.getSize() > systemConfig.getMaxLogoImageSize()){
-            throw new ServiceException("图片大小超过" + systemConfig.getMaxLogoImageSize() + "bytes");
-        }
-        if(!FileUtil.isPictureFile(file.getOriginalFilename())){
-            throw new ServiceException("文件非图片类型");
-        }
-
         //删除原logo
         Forum originForum = forumMapper.selectById(forumId);
         if(originForum == null) return false;
         fileService.deleteFile(originForum.getLogoFileId());
 
         //保存图片
-        FileIdentity logoFile = fileService.uploadFile("forum_logo", file, false);
+        FileIdentity logoFile = fileService.uploadImage(FORUM_LOGO_SOURCE, file, systemConfig.getMaxLogoImageSize(),false);
 
         Forum forum = new Forum();
         forum.setId(forumId);
