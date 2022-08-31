@@ -78,6 +78,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new ServiceException("注册失败: 该用户名已被注册");
         }
 
+        //TODO: 邮箱注册功能
+        user.setEmail(null);
+
         return userMapper.insert(user) > 0;
     }
 

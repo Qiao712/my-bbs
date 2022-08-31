@@ -16,4 +16,6 @@ public interface RoleMapper extends BaseMapper<Role> {
     Integer revokeAuthorities(Long roleId, Set<String> authorities);
 
     Integer revokeAllAuthorities(Long roleId);
+
+    Integer revokeAuthorityOfAllRoles(Long authorityId);
 }

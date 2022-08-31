@@ -25,7 +25,7 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/register")
-    public Result<Void> register(@Validated(AddGroup.class) @RequestBody User user){
+    public Result<Void> register(@RequestBody User user){
         return Result.build(userService.register(user));
     }
 

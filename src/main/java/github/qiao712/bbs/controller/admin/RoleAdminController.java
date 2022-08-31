@@ -37,6 +37,12 @@ public class RoleAdminController {
         return Result.build(roleService.updateRole(role));
     }
 
+    @DeleteMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('admin:role:remove')")
+    public Result<Void> removeRole(@PathVariable Long roleId){
+        return Result.build(roleService.removeRole(roleId));
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('admin:role:add')")
     public Result<Void> addRole(@Validated(AddGroup.class) @RequestBody Role role){
@@ -53,5 +59,11 @@ public class RoleAdminController {
     @PreAuthorize("hasAuthority('admin:authority:update')")
     public Result<Void> updateAuthority(@Validated(UpdateGroup.class) @RequestBody Authority authority){
         return Result.build(roleService.updateAuthority(authority));
+    }
+
+    @DeleteMapping("/authorities/{authorityId}")
+    @PreAuthorize("hasAuthority('admin:authority:remove')")
+    public Result<Void> removeAuthority(@PathVariable Long authorityId){
+        return Result.build(roleService.removeAuthority(authorityId));
     }
 }

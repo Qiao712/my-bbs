@@ -1,5 +1,7 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.entity.Authority;
 import github.qiao712.bbs.domain.entity.Role;
@@ -18,10 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
@@ -36,6 +35,9 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     private AuthorityMapper authorityMapper;
     @Autowired
     private ApplicationContext applicationContext;
+
+    //固定管理员角色
+    private final static String ROLE_ADMIN = "ROLE_ADMIN";
 
     //缓存所有权限标识
     private static volatile boolean isAuthorityUpdated = false;
@@ -54,6 +56,13 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
     @Override
     public boolean removeRole(Long roleId) {
+        Role role = roleMapper.selectById(roleId);
+        if(role == null) return false;
+
+        if(ROLE_ADMIN.equals(role.getName())){
+            throw new ServiceException("禁止删除ROLE_ADMIN");
+        }
+
         roleMapper.revokeAllAuthorities(roleId);
         if(roleMapper.deleteById(roleId) > 0){
             //删除缓存
@@ -71,6 +80,9 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         if(role.getAuthorities() != null && !role.getAuthorities().isEmpty()){
             flag2= roleMapper.grantAuthorities(role.getId(), role.getAuthorities()) > 0;
         }
+
+        grantedAuthorityCache.remove(role.getId());
+
         if(flag1 && flag2) return true;
         else throw new ServiceException("角色添加失败");  //抛出异常以回滚
     }
@@ -102,8 +114,12 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
         if(authorities == null){
             Role role = getRole(roleId);
-            authorities = role.getAuthorities().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
-            grantedAuthorityCache.put(roleId, authorities);
+            if(role != null){
+                authorities = role.getAuthorities().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+                grantedAuthorityCache.put(roleId, authorities);
+            }else{
+                grantedAuthorityCache.put(roleId, Collections.emptyList());
+            }
         }
 
         return authorities;
@@ -126,8 +142,21 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
                 for (String newAuthorityString : newAuthorityStrings) {
                     Authority authority = new Authority();
                     authority.setAuthority(newAuthorityString);
+                    authority.setValid(true);
                     authorityMapper.insert(authority);
                 }
+
+                //更新权限有效性字段
+                //失效的权限(没有被扫描到)
+                LambdaUpdateWrapper<Authority> updateWrapper = new LambdaUpdateWrapper<>();
+                updateWrapper.set(Authority::getValid, false);
+                updateWrapper.notIn(Authority::getAuthority, authorityStrings);
+                authorityMapper.update(null, updateWrapper);
+                //有效的权限(扫描到的)
+                updateWrapper = new LambdaUpdateWrapper<>();
+                updateWrapper.set(Authority::getValid, true);
+                updateWrapper.in(Authority::getAuthority, authorityStrings);
+                authorityMapper.update(null, updateWrapper);
 
                 isAuthorityUpdated = true;
             }
@@ -139,6 +168,23 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     @Override
     public boolean updateAuthority(Authority authority) {
         return authorityMapper.updateById(authority) > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean removeAuthority(Long authorityId) {
+        Authority authority = authorityMapper.selectById(authorityId);
+        if(authority.getValid()){
+            throw new ServiceException("禁止删除未失效权限");
+        }
+
+        //取消所有关联
+        roleMapper.revokeAuthorityOfAllRoles(authorityId);
+
+        //清除缓存
+        grantedAuthorityCache.clear();
+
+        return authorityMapper.deleteById(authorityId) > 0;
     }
 
     /**

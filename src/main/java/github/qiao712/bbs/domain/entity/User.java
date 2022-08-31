@@ -24,14 +24,12 @@ public class User extends BaseEntity {
     @Null(groups = UpdateGroup.class, message = "禁止修改用户名")
     private String username;
 
-    @Null(groups = AddGroup.class, message = "禁止指定角色")
     private Long roleId;
 
     @NotBlank(groups = AddGroup.class, message = "密码不可为空")
     @Length(min = 6, max = 16, groups = {AddGroup.class, UpdateGroup.class}, message = "密码长度应在[6,16]之间")
     private String password;
 
-    @Null(groups = AddGroup.class, message = "不可指定启用状态")
     private Boolean enable;
 
     @Null(groups = {AddGroup.class, UpdateGroup.class})
@@ -39,6 +37,8 @@ public class User extends BaseEntity {
 
     @Email(groups = {AddGroup.class, UpdateGroup.class})
     private String email;
+
+    private Boolean gender;
 
     @TableField(exist = false)
     private String role;

@@ -32,4 +32,6 @@ public interface RoleService extends IService<Role> {
     List<Authority> listAuthorities();
 
     boolean updateAuthority(Authority authority);
+
+    boolean removeAuthority(Long authorityId);
 }

@@ -33,4 +33,8 @@ public class Authority extends BaseEntity {
     @ApiModelProperty("分类")
     @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 20, message = "分类名长度超出限制")
     private String category;
+
+    @ApiModelProperty("该权限是否有效(在@PreAuthorize中使用)")
+    @Null(groups = {AddGroup.class, UpdateGroup.class})
+    private Boolean valid;
 }

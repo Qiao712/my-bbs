@@ -33,6 +33,10 @@
     </delete>
 
     <delete id="revokeAllAuthorities">
-        DELETE FROM t_role_authority WHERE role_id = #{role_id}
+        DELETE FROM t_role_authority WHERE role_id = #{roleId}
+    </delete>
+
+    <delete id="revokeAuthorityOfAllRoles">
+        DELETE FROM t_role_authority WHERE authority_id = #{authorityId}
     </delete>
 </mapper>
