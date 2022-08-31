@@ -2,6 +2,8 @@ package github.qiao712.bbs.service;
 
 import github.qiao712.bbs.domain.dto.Statistic;
 import github.qiao712.bbs.domain.entity.Advertisement;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -12,10 +14,17 @@ public interface SystemService {
      */
     Statistic getStatistic();
 
-    //首页广告 增删改查--------------------------------------
+    //首页广告--------------------------------------
+
+    /**
+     * 上传广告图片文件
+     * @return 文件id
+     */
+    Long uploadAdvertisementImage(@RequestPart("image") MultipartFile imageFile);
+
     boolean addAdvertisement(Advertisement advertisement);
 
-    List<Advertisement> listAdvertisement();
+    List<Advertisement> listAdvertisements();
 
     boolean removeAdvertisement(Long advertisingId);
 

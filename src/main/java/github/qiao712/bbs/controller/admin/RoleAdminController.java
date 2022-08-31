@@ -1,9 +1,7 @@
 package github.qiao712.bbs.controller.admin;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import github.qiao712.bbs.domain.AddGroup;
 import github.qiao712.bbs.domain.UpdateGroup;
-import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.entity.Authority;
 import github.qiao712.bbs.domain.entity.Role;

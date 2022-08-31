@@ -52,6 +52,11 @@ public class SystemConfig {
     private Long maxLogoImageSize;
 
     /**
+     * 首页广告图片最大size (byte)
+     */
+    private Long maxAdvertisementImageSize;
+
+    /**
      * 临时文件最短存在时间 (s)
      */
     private Long minTempFileLife;

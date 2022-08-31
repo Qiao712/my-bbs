@@ -16,7 +16,7 @@ import javax.validation.constraints.Null;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("t_advertising")
+@TableName("t_advertisement")
 @ApiModel(value = "Advertising对象", description = "首页广告")
 public class Advertisement extends BaseEntity {
     @NotNull(groups = AddGroup.class)
@@ -29,11 +29,10 @@ public class Advertisement extends BaseEntity {
     private String url;
 
     @NotNull(groups = AddGroup.class)
-    @NotBlank(groups = {UpdateGroup.class, AddGroup.class})
     private Long imageFileId;
 
     @ApiModelProperty("顺序")
-    private Integer order;
+    private Integer sequence;
 
     @TableField(exist = false)
     @Null(groups = {UpdateGroup.class, AddGroup.class})

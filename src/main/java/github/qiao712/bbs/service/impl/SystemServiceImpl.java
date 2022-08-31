@@ -1,7 +1,10 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.dto.Statistic;
 import github.qiao712.bbs.domain.entity.Advertisement;
+import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AdvertisementMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -12,6 +15,7 @@ import github.qiao712.bbs.service.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +32,10 @@ public class SystemServiceImpl implements SystemService {
     private FileService fileService;
     @Autowired
     private AdvertisementMapper advertisementMapper;
+    @Autowired
+    private SystemConfig systemConfig;
+
+    private final static String ADVERTISEMENT_IMAGE_SOURCE = "ad-image";
 
     @Override
     public Statistic getStatistic() {
@@ -39,19 +47,23 @@ public class SystemServiceImpl implements SystemService {
     }
 
     @Override
+    public Long uploadAdvertisementImage(MultipartFile imageFile) {
+        FileIdentity fileIdentity = fileService.uploadImage(ADVERTISEMENT_IMAGE_SOURCE, imageFile, systemConfig.getMaxAdvertisementImageSize(), true);
+        return fileIdentity != null ? fileIdentity.getId() : null;
+    }
+
+    @Override
     @Transactional
     public boolean addAdvertisement(Advertisement advertisement) {
-        //锁定图片文件(设置为非临时的)
-        if(advertisement.getImageFileId() != null){
-            fileService.setTempFlags(Collections.singletonList(advertisement.getImageFileId()), false);
-        }
-
+        useImage(advertisement.getImageFileId());
         return advertisementMapper.insert(advertisement) > 0;
     }
 
     @Override
-    public List<Advertisement> listAdvertisement() {
-        List<Advertisement> advertisements = advertisementMapper.selectList(null);
+    public List<Advertisement> listAdvertisements() {
+        LambdaQueryWrapper<Advertisement> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.orderByAsc(Advertisement::getSequence);
+        List<Advertisement> advertisements = advertisementMapper.selectList(queryWrapper);
 
         //获取图片url
         for (Advertisement advertisement : advertisements) {
@@ -83,14 +95,28 @@ public class SystemServiceImpl implements SystemService {
             return false;
         }
 
-        //处理文件引用
-        if(advertisement.getImageFileId() != null){
-            fileService.setTempFlags(Collections.singletonList(oldAdvertisement.getId()), true);
-            if(! fileService.setTempFlags(Collections.singletonList(advertisement.getImageFileId()), false)){
-                throw new ServiceException("引用无效文件");
-            }
-        }
+        if(advertisement.getImageFileId() != null)
+            useImage(advertisement.getImageFileId());
 
         return true;
+    }
+
+    /**
+     * 使用并锁定图片
+     */
+    private void useImage(Long imageFileId){
+        if(imageFileId != null){
+            //限制其只能引用通过广告图片接口上传的图片
+            String source = fileService.getFileIdentity(imageFileId).getSource();
+            if(ADVERTISEMENT_IMAGE_SOURCE.equals(source)){
+                if(!fileService.setTempFlags(Collections.singletonList(imageFileId), false)){
+                    throw new ServiceException("图片文件无效");
+                }
+            }else{
+                throw new ServiceException("图片文件非法");
+            }
+        }else{
+            throw new ServiceException("未指定图片");
+        }
     }
 }

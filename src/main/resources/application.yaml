@@ -30,6 +30,7 @@ sys:
   max-post-image-num: 20
   max-logo-image-size: 2097152           #2MiB
   min-temp-file-life: 86400              #1天
+  max-advertisement-image-size: 2097152  #2MiB
 
   # 阿里云OOS配置
   aliOSS:

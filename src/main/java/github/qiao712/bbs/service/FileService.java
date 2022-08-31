@@ -43,9 +43,15 @@ public interface FileService extends IService<FileIdentity> {
     List<String> getBatchFileUrls(List<Long> fileIds);
 
     /**
+     * 获取文件信息
+     */
+    FileIdentity getFileIdentity(Long fileId);
+
+    /**
      * 根据文件的url或文件信息
      */
     FileIdentity getFileIdentityByUrl(String url);
+
 
     /**
      * 根据id删除文件

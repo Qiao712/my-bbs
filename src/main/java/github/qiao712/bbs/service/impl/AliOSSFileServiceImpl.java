@@ -138,6 +138,11 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
+    public FileIdentity getFileIdentity(Long fileId) {
+        return fileMapper.selectById(fileId);
+    }
+
+    @Override
     @Transactional
     public boolean deleteFile(Long fileId){
         FileIdentity fileIdentity = fileMapper.selectById(fileId);
