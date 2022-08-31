@@ -42,9 +42,14 @@ public class SystemConfig {
     private Long maxPostImageSize;
 
     /**
-     * 贴子中图片最大数量 (byte)
+     * 贴子中图片最大数量
      */
     private Long maxPostImageNum;
+
+    /**
+     * 评论中图片最大数量
+     */
+    private Long maxCommentImageNum;
 
     /**
      * 板块logo图片最大size (byte)

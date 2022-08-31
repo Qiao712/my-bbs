@@ -28,6 +28,7 @@ sys:
   max-avatar-size: 1024000               #1000KiB
   max-post-image-size: 2097152           #2MiB
   max-post-image-num: 20
+  max-comment-image-num: 10
   max-logo-image-size: 2097152           #2MiB
   min-temp-file-life: 86400              #1天
   max-advertisement-image-size: 2097152  #2MiB

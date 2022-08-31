@@ -8,6 +8,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -20,10 +21,12 @@ import javax.validation.constraints.Null;
 public class Post extends BaseEntity {
     @ApiModelProperty("标题")
     @NotBlank(groups = AddGroup.class, message = "标题不可为空")
+    @Length(max = 100, message = "标题长度超出限制")
     private String title;
 
     @ApiModelProperty("内容")
     @NotBlank(groups = AddGroup.class, message = "内容不可为空")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 65535, message = "内容长度超出限制")
     private String content;
 
     @ApiModelProperty("发布者")

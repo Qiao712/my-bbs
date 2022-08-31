@@ -3,6 +3,7 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CommentDetailDto;
@@ -48,6 +49,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private StatisticsService statisticsService;
     @Autowired
     private ApplicationEventPublisher publisher;
+    @Autowired
+    private SystemConfig systemConfig;
 
     @Override
     public boolean addComment(Comment comment) {
@@ -84,13 +87,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         if(comment.getRepliedId() == null){
             //解析出引用的图片
             List<String> urls = HtmlUtil.getImageUrls(comment.getContent());
+            if(urls.size() > systemConfig.getMaxCommentImageNum()){
+                throw new ServiceException("图片数量超出限制");
+            }
+
             //如果文件的上传者是该用户(评论作者)，则记录该评论对图片的引用(记录为该评论一个附件)
             List<Long> imageFileIds = new ArrayList<>(urls.size());
             for (String url : urls) {
                 FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
                 if(imageFileIdentity == null) continue;  //为外部连接
 
-                if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())){
+                if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())
+                    && PostServiceImpl.POST_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
                     imageFileIds.add(imageFileIdentity.getId());
                 }
             }

@@ -11,6 +11,7 @@ import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.event.PostEvent;
+import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
@@ -59,7 +60,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
 
     //贴子中图片的source(标识)
-    private final static String POST_IMAGE_SOURCE = "post-image";
+    public final static String POST_IMAGE_SOURCE = "post-image";
 
     @Override
     @Transactional
@@ -77,6 +78,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //解析出引用的图片
         List<String> urls = HtmlUtil.getImageUrls(post.getContent());
+        if(urls.size() > systemConfig.getMaxPostImageNum()){
+            throw new ServiceException("图片数量超出限制");
+        }
 
         //如果文件的上传者是该该用户(贴子作者)，且上传来源为贴子图片，则记录该贴子对图片的引用(记录为该贴子的一个附件)
         List<Long> imageFileIds = new ArrayList<>(urls.size());

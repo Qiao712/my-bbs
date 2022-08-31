@@ -4,7 +4,9 @@ import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.base.ResultStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,6 +18,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = ServiceException.class)
     public Result<Void> handleServiceException(ServiceException serviceException){
         return Result.fail(serviceException.getMessage());
+    }
+
+    @ResponseBody
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    public Result<Void> handleArgumentException(MethodArgumentNotValidException exception){
+        StringBuilder message = new StringBuilder("参数无效");
+        if(!exception.getFieldErrors().isEmpty()) message.append(':');
+        for (FieldError fieldError : exception.getFieldErrors()) {
+            message.append(fieldError.getDefaultMessage());
+            message.append(';');
+        }
+        return Result.build(ResultStatus.ARGUMENT_NOT_VALID, message.toString());
     }
 
     @ResponseBody

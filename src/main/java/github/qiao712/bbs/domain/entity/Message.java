@@ -1,11 +1,14 @@
 package github.qiao712.bbs.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import github.qiao712.bbs.domain.AddGroup;
+import github.qiao712.bbs.domain.UpdateGroup;
 import github.qiao712.bbs.domain.base.BaseEntity;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.hibernate.validator.constraints.Length;
 
 @TableName("t_message")
 @ApiModel(value = "Message对象", description = "消息列表")
@@ -27,5 +30,6 @@ public class Message extends BaseEntity {
     private Boolean isAcknowledged;
 
     @ApiModelProperty("消息内容")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 500, message = "消息长度超出限制")
     private String content;
 }
