@@ -49,7 +49,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         message.setIsAcknowledged(false);
 
         //两个用户之间的会话id
-        if(Objects.equals(message.getType(), "private") && senderId != null && receiverId != null){
+        if(Objects.equals(message.getType().toLowerCase(), "private") && senderId != null && receiverId != null){
             message.setConversationId(getConversationId(senderId, receiverId));
         }
 
