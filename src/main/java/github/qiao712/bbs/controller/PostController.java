@@ -29,28 +29,31 @@ public class PostController {
     private LikeService likeService;
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('post:add')")
     public Result<Void> addPost(@Validated(AddGroup.class) @RequestBody Post post){
         return Result.build(postService.addPost(post));
     }
 
     @PostMapping("/images")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('post:image:upload')")
     public Result<String> uploadImage(@RequestPart("image") MultipartFile imageFile){
         return Result.succeed("图片上传成功", postService.uploadImage(imageFile));
     }
 
     @GetMapping("/{postId}")
+    @PreAuthorize("hasAuthority('post:get')")
     public Result<PostDto> getPost(@PathVariable("postId") Long postId){
         return Result.succeedNotNull(postService.getPost(postId));
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('post:list')")
     public Result<IPage<PostDto>> listPosts(@Validated PageQuery pageQuery, Long forumId, String authorUsername){
         return Result.succeed(postService.listPosts(pageQuery, forumId, authorUsername));
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('post:search')")
     public Result<IPage<PostDto>> searchPosts(@Validated PageQuery pageQuery,
                                               @NotNull @NotBlank @Length(max = 30) String text,
                                               Long authorId, Long forumId){
@@ -58,20 +61,20 @@ public class PostController {
     }
 
     @DeleteMapping("/{postId}")
-    @PreAuthorize("isAuthenticated() and postService.isAuthor(postId, currentUser.id)")
+    @PreAuthorize("isAuthenticated() and postService.isAuthor(postId, currentUser.id) and hasAuthority('post:remove:mine')")
     public Result<Void> removeMyPost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){
         return Result.build(postService.removePost(postId));
     }
 
     //-----------------------------------------
     @GetMapping("/{postId}/like")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('post:like')")
     public Result<Void> likePost(@PathVariable("postId") Long postId){
         return Result.build(likeService.likePost(postId));
     }
 
     @GetMapping("/{postId}/undo-like")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('post:like')")
     public Result<Void> undoLikePost(@PathVariable("postId") Long postId){
         return Result.build(likeService.undoLikePost(postId));
     }

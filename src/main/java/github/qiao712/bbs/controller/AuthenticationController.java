@@ -5,6 +5,7 @@ import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.CredentialDto;
 import github.qiao712.bbs.service.AuthenticationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ public class AuthenticationController {
     }
 
     @GetMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> logout(){
         authenticationService.logout();
         return Result.succeed();

@@ -22,16 +22,19 @@ public class ForumController {
     private ForumService forumService;
 
     @GetMapping("/{forumId}")
+    @PreAuthorize("hasAuthority('forum:get')")
     public Result<Forum> getForum(@PathVariable("forumId") Long forumId){
         return Result.succeedNotNull(forumService.getForum(forumId));
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('forum:list')")
     public Result<IPage<Forum>> listForums(PageQuery pageQuery, Forum forum){
         return Result.succeed(forumService.listForums(pageQuery, forum));
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('forum:list')")
     public Result<List<Forum>> listAllForums(){
         return Result.succeed(forumService.listAllForums());
     }

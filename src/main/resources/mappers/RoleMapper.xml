@@ -10,6 +10,10 @@
         SELECT * FROM t_role WHERE id = #{id}
     </select>
 
+    <select id="selectRoleByName" resultMap="roleAuthorityMap">
+        SELECT * FROM t_role WHERE name = #{roleName}
+    </select>
+
     <select id="selectAuthorities" resultType="String">
         SELECT a.authority FROM t_authority a, t_role_authority ra
         WHERE a.id = ra.authority_id AND ra.role_id = #{roleId}

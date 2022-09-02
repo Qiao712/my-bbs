@@ -30,19 +30,19 @@ public class MessageController {
     }
 
     @PostMapping("/private")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('message:send')")
     public Result<Void> sendPrivateMessage(@Validated  @RequestBody PrivateMessageDto privateMessageDto){
         return Result.build(messageService.sendPrivateMessage(privateMessageDto.getReceiverId(), privateMessageDto.getText()));
     }
 
     @GetMapping("/conversations")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('message:conversation:list')")
     public Result<IPage<ConversationDto>> listConversations(@Validated PageQuery pageQuery){
         return Result.succeed(messageService.listConversations(pageQuery));
     }
 
     @GetMapping("/private")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('message:private:list')")
     public Result<List<MessageDto>> listPrivateMessages(@NotNull Long receiverId,
                                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
                                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime before,

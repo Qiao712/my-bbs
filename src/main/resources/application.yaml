@@ -14,6 +14,14 @@ spring:
     host: 8.141.151.176
     password: haihaihai
 
+  # 文件上传大小限制
+  servlet:
+    multipart:
+      enabled: true               #是否启用http上传处理
+      max-request-size: 10MB     #最大请求文件的大小
+      max-file-size: 8MB         #设置单个文件最大长度
+      file-size-threshold: 10MB   #当文件达到多少时进行磁盘写入
+
 mybatis-plus:
   mapper-locations: classpath:mappers/*.xml
   type-aliases-package: github.qiao712.bbs.domain.entity

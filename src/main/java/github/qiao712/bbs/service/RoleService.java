@@ -9,6 +9,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.List;
 
 public interface RoleService extends IService<Role> {
+    //固定的角色
+    final static String ROLE_ADMIN = "ROLE_ADMIN";
+    final static String ROLE_ANONYMOUS = "ROLE_ANONYMOUS";
+
     List<Role> listRoles();
 
     Role getRole(Long roleId);
@@ -21,8 +25,9 @@ public interface RoleService extends IService<Role> {
 
     /**
      * 获取角色的权限列表
+     * TokenFilter中，用于设置安全上下文的AuthenticationToken中的权限
      */
-    List<SimpleGrantedAuthority> getGrantedAuthorities(Long roleId);
+    List<SimpleGrantedAuthority> getGrantedAuthorities(String roleName);
 
     /**
      * 列出所有权限

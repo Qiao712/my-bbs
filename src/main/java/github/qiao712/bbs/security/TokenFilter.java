@@ -3,13 +3,17 @@ package github.qiao712.bbs.security;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.base.ResultStatus;
 import github.qiao712.bbs.domain.dto.AuthUser;
+import github.qiao712.bbs.mapper.RoleMapper;
 import github.qiao712.bbs.service.RoleService;
 import github.qiao712.bbs.util.ResponseUtil;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,7 +31,7 @@ import java.util.stream.Collectors;
  * 验证Token，并将用户信息保存至安全上下文
  */
 @Component
-public class TokenFilter extends OncePerRequestFilter {
+public class TokenFilter extends OncePerRequestFilter{
     @Autowired
     private TokenManager tokenManager;
     @Autowired
@@ -42,18 +46,19 @@ public class TokenFilter extends OncePerRequestFilter {
             AuthUser user = tokenManager.getUser(token);
             if(user != null){
                 //设置权限信息
-                user.setAuthorities(roleService.getGrantedAuthorities(user.getRoleId()));
+                user.setAuthorities(roleService.getGrantedAuthorities(user.getRole()));
                 Authentication authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                filterChain.doFilter(request, response);
+                return;
             }
-//            else {
-//                //Token以过期，返回提示
-//                Result<Void> result = Result.build(ResultStatus.INVALID_TOKEN, "Token无效");
-//                ResponseUtil.response(response, result);
-//                return;
-//            }
         }
 
+        //未登录，设置为匿名Authentication
+        List<SimpleGrantedAuthority> authorities = roleService.getGrantedAuthorities(RoleService.ROLE_ANONYMOUS);   //获取匿名用户的权限
+        AnonymousAuthenticationToken authentication = new AnonymousAuthenticationToken("anonymous", "anonymousUser", authorities);  //角色名一定在Authorities中，不会为空
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
     }
 }

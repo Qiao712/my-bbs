@@ -11,6 +11,8 @@ import java.util.Set;
 public interface RoleMapper extends BaseMapper<Role> {
     Role selectRole(Long id);
 
+    Role selectRoleByName(String roleName);
+
     Integer grantAuthorities(Long roleId, Set<String> authorities);
 
     Integer revokeAuthorities(Long roleId, Set<String> authorities);

@@ -30,23 +30,25 @@ public class CommentController {
     private LikeService likeService;
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('comment:add')")
     public Result<Void> addComment(@Validated(AddGroup.class) @RequestBody Comment comment){
         return Result.build(commentService.addComment(comment));
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('comment:list')")
     public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long postId, Long parentCommentId){
         return Result.succeed(commentService.listComments(pageQuery, postId, parentCommentId));
     }
 
     @GetMapping("/my")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('comment:list:mine')")
     public Result<IPage<CommentDetailDto>> listMyComments(@Validated PageQuery pageQuery, @AuthenticationPrincipal AuthUser authUser){
         return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authUser.getUsername()));
     }
 
     @DeleteMapping("/{commentId}")
+    @PreAuthorize("isAuthenticated() and hasAuthority('comment:remove:mine')")
     public Result<Void> removeMyComment(@PathVariable("commentId") Long commentId, @AuthenticationPrincipal AuthUser currentUser){
         if(!commentService.isAuthor(commentId, currentUser.getId())){
             throw new ServiceException("无权删除评论");
@@ -56,13 +58,13 @@ public class CommentController {
 
     //点赞------------------------------
     @GetMapping("/{commentId}/like")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('comment:like')")
     public Result<Void> likeComment(@PathVariable("commentId") Long commentId){
         return Result.build(likeService.likeComment(commentId));
     }
 
     @GetMapping("/{commentId}/undo-like")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and hasAuthority('comment:like')")
     public Result<Void> undoLikeComment(@PathVariable("commentId") Long commentId){
         return Result.build(likeService.undoLikeComment(commentId));
     }

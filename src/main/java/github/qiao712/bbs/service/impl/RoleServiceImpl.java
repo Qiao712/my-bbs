@@ -1,7 +1,6 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.entity.Authority;
 import github.qiao712.bbs.domain.entity.Role;
@@ -36,13 +35,10 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     @Autowired
     private ApplicationContext applicationContext;
 
-    //固定管理员角色
-    private final static String ROLE_ADMIN = "ROLE_ADMIN";
-
     //缓存所有权限标识
     private static volatile boolean isAuthorityUpdated = false;
     //缓存角色拥有的权限列表
-    private final ConcurrentMap<Long, List<SimpleGrantedAuthority>> grantedAuthorityCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, List<SimpleGrantedAuthority>> grantedAuthorityCache = new ConcurrentHashMap<>();
 
     @Override
     public List<Role> listRoles() {
@@ -61,12 +57,14 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
         if(ROLE_ADMIN.equals(role.getName())){
             throw new ServiceException("禁止删除ROLE_ADMIN");
+        }else if(ROLE_ANONYMOUS.equals(role.getName())){
+            throw new ServiceException("禁止删除ROLE_ANONYMOUS");
         }
 
         roleMapper.revokeAllAuthorities(roleId);
         if(roleMapper.deleteById(roleId) > 0){
             //删除缓存
-            grantedAuthorityCache.remove(roleId);
+            grantedAuthorityCache.remove(role.getName());
             return true;
         }
         return false;
@@ -81,7 +79,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             flag2= roleMapper.grantAuthorities(role.getId(), role.getAuthorities()) > 0;
         }
 
-        grantedAuthorityCache.remove(role.getId());
+        grantedAuthorityCache.remove(role.getName());
 
         if(flag1 && flag2) return true;
         else throw new ServiceException("角色添加失败");  //抛出异常以回滚
@@ -101,7 +99,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
         if(roleMapper.updateById(role) > 0){
             //删除缓存
-            grantedAuthorityCache.remove(role.getId());
+            grantedAuthorityCache.remove(originRole.getName());
             return true;
         }else{
             throw new ServiceException("角色更新失败");   //抛出异常以回滚
@@ -109,16 +107,20 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     @Override
-    public List<SimpleGrantedAuthority> getGrantedAuthorities(Long roleId) {
-        List<SimpleGrantedAuthority> authorities = grantedAuthorityCache.get(roleId);
+    public List<SimpleGrantedAuthority> getGrantedAuthorities(String roleName) {
+        List<SimpleGrantedAuthority> authorities = grantedAuthorityCache.get(roleName);
 
         if(authorities == null){
-            Role role = getRole(roleId);
+            Role role = roleMapper.selectRoleByName(roleName);
             if(role != null){
                 authorities = role.getAuthorities().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
-                grantedAuthorityCache.put(roleId, authorities);
+
+                //将角色名也添加进去
+                authorities.add(new SimpleGrantedAuthority(role.getName()));
+
+                grantedAuthorityCache.put(role.getName(), authorities);
             }else{
-                grantedAuthorityCache.put(roleId, Collections.emptyList());
+                grantedAuthorityCache.put("", Collections.emptyList());
             }
         }
 
