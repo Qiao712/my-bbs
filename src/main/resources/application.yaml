@@ -4,15 +4,15 @@ server:
 spring:
   #  配置数据源
   datasource:
-    username: root
-    password: lty0712
+    username: test
+    password:
     url: jdbc:mysql://localhost:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis
   redis:
-    host: 8.141.151.176
-    password: haihaihai
+    host: localhost
+    password:
 
   # 文件上传大小限制
   servlet:
@@ -51,6 +51,6 @@ sys:
   # ElasticSearch地址
   elastic-search:
     hosts:
-      - 121.36.85.97:9200
+      - localhost:9200
     username: elastic
-    password: haihaihai
+    password:
