@@ -1,5 +1,6 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.entity.PostLike;
 import github.qiao712.bbs.exception.ServiceException;
@@ -63,6 +64,11 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     @Override
     public void likePost(Long postId, boolean like) {
         Long userId = SecurityUtil.getCurrentUser().getId();
+
+        if(!Boolean.TRUE.equals(postMapper.existsById(postId))){
+            throw new ServiceException("贴子不存在");
+        }
+
         String likeRecordKey = userId + ":" + postId;
         String postIdKey = postId.toString();
         HashOperations<String, Object, Object> hashOps = redisTemplate.opsForHash();

@@ -56,4 +56,8 @@
     <select id="selectLikeCount" resultType="Long">
         SELECT like_count FROM t_comment WHERE id = #{commentId}
     </select>
+
+    <select id="existsById" resultType="Boolean">
+        SELECT EXISTS(SELECT * FROM t_comment WHERE id = #{commentId}) AS e
+    </select>
 </mapper>

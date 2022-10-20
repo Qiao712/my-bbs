@@ -4,15 +4,29 @@ server:
 spring:
   #  配置数据源
   datasource:
-    username: test
+    username: root
     password:
-    url: jdbc:mysql://localhost:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis
   redis:
-    host: localhost
+    host:
+    password: lty0712
+    database: 0
+
+  # RabbitMQ
+  rabbitmq:
+    host:
+    port:
+    username:
     password:
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3        #最大重试次数
+          initial-interval: 3000 #重试间隔时间（单位毫秒）
 
   # 文件上传大小限制
   servlet:
@@ -43,10 +57,10 @@ sys:
 
   # 阿里云OOS配置
   aliOSS:
-    endpoint: oss-cn-beijing.aliyuncs.com
-    accessKeyId: LTAI5t5cD89bgvvnNsvpQKY6
-    accessKeySecret: PmLQ3oyKlMDYdjEFGD54Sx9fZGKDLi
-    bucket-name: qiao712-my-bbs
+    endpoint:
+    accessKeyId:
+    accessKeySecret:
+    bucket-name:
 
   # ElasticSearch地址
   elastic-search:

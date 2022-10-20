@@ -1,6 +1,5 @@
 package github.qiao712.bbs;
 
-import github.qiao712.bbs.event.PostEvent;
 import github.qiao712.bbs.util.HtmlUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,12 +52,4 @@ public class TestSomething {
 
     @Autowired
     private ApplicationEventPublisher publisher;
-
-    @Test
-    public void testEvent() throws InterruptedException {
-        PostEvent postEvent = PostEvent.buildCreatePostEvent(null, this);
-        publisher.publishEvent(postEvent);
-        System.out.println(Thread.currentThread() + ": publisher");
-        Thread.sleep(5000000);
-    }
 }

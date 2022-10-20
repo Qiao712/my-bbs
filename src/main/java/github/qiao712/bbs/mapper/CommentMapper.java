@@ -13,4 +13,6 @@ public interface CommentMapper extends BaseMapper<Comment> {
     Integer updateLikeCount(Long commentId, Long likeCount);
 
     Long selectLikeCount(Long commentId);
+
+    Boolean existsById(Long commentId);
 }

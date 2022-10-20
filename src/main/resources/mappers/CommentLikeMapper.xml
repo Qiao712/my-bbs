@@ -3,7 +3,7 @@
 <mapper namespace="github.qiao712.bbs.mapper.CommentLikeMapper">
     <select id="isCommentLikedByUser" resultType="boolean">
         SELECT (
-            EXISTS (SELECT id FROM t_comment_like WHERE user_id = #{userId} AND comment_id = #{commentId})
+            EXISTS (SELECT * FROM t_comment_like WHERE user_id = #{userId} AND comment_id = #{commentId})
         ) liked
     </select>
 

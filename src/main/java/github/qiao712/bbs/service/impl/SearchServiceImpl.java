@@ -6,9 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
-import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Post;
-import github.qiao712.bbs.event.PostEvent;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.SearchService;
@@ -41,7 +39,6 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;

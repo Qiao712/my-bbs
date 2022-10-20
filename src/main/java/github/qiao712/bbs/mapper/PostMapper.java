@@ -24,4 +24,6 @@ public interface PostMapper extends BaseMapper<Post> {
     List<Long> selectViewCountBatch(List<Long> postIds);
 
     Integer updateScore(Long postId, Long score);
+
+    Boolean existsById(Long postId);
 }

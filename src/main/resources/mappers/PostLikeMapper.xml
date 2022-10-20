@@ -3,7 +3,7 @@
 <mapper namespace="github.qiao712.bbs.mapper.PostLikeMapper">
     <select id="isPostLikedByUser" resultType="boolean">
         SELECT (
-            EXISTS (SELECT id FROM t_post_like WHERE user_id = #{userId} AND post_id = #{postId})
+            EXISTS (SELECT * FROM t_post_like WHERE user_id = #{userId} AND post_id = #{postId})
         ) liked
     </select>
 

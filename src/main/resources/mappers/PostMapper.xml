@@ -40,4 +40,8 @@
     <update id="increaseCommentCount">
         UPDATE t_post SET comment_count = t_post.comment_count + #{delta} WHERE id = #{postId}
     </update>
+
+    <select id="existsById" resultType="Boolean">
+        SELECT EXISTS(SELECT * FROM t_post WHERE id = #{postId}) AS e
+    </select>
 </mapper>

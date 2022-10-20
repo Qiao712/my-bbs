@@ -10,18 +10,17 @@ import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
-import github.qiao712.bbs.event.PostEvent;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mq.PostMessageSender;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,11 +49,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private CommentMapper commentMapper;
     @Autowired
-    private ApplicationEventPublisher publisher;
-    @Autowired
     private SystemConfig systemConfig;
     @Autowired
     private StatisticsService statisticsService;
+    @Autowired
+    private PostMessageSender postMessageSender;
 
     //Post中允许排序的列
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
@@ -100,7 +99,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         //发布添加事件，以同步至ElasticSearch
-        publisher.publishEvent(PostEvent.buildCreatePostEvent(post, this));
+        postMessageSender.sendPostAddMessage(post);
         return true;
     }
 
@@ -193,7 +192,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         if(postMapper.deleteById(postId) > 0){
             //发布删除事件，以同步至ElasticSearch
-            publisher.publishEvent(PostEvent.buildDeletePostEvent(postId, this));
+            postMessageSender.sendPostDeleteMessage(postId);
             return true;
         }
 

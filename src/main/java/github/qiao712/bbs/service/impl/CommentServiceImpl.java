@@ -9,21 +9,18 @@ import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
-import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
 import github.qiao712.bbs.domain.entity.*;
-import github.qiao712.bbs.event.MessageEvent;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.ForumMapper;
 import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mq.CommentMessageSender;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,9 +45,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private StatisticsService statisticsService;
     @Autowired
-    private ApplicationEventPublisher publisher;
-    @Autowired
     private SystemConfig systemConfig;
+    @Autowired
+    private CommentMessageSender commentMessageSender;
 
     @Override
     public boolean addComment(Comment comment) {
@@ -113,8 +110,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         postMapper.increaseCommentCount(comment.getPostId(), 1L);
 
         //发送评论/回复消息
-        MessageEvent messageEvent = MessageEvent.buildCommentAddEvent(comment, this);
-        publisher.publishEvent(messageEvent);
+        commentMessageSender.sendCommentAddMessage(comment);
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());
