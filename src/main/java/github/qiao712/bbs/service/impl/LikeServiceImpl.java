@@ -1,34 +1,33 @@
 package github.qiao712.bbs.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.domain.entity.CommentLike;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.entity.PostLike;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.CommentLikeMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostLikeMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.service.CommentService;
 import github.qiao712.bbs.service.LikeService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.service.StatisticsService;
 import github.qiao712.bbs.util.SecurityUtil;
-import org.apache.logging.log4j.util.Strings;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 @Service
+@Slf4j
 public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> implements LikeService {
     @Autowired
     private PostLikeMapper postLikeMapper;
@@ -41,83 +40,157 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     @Autowired
     private StatisticsService statisticsService;
 
-    @Override
-    @Transactional
-    public boolean likePost(Long postId) {
-        Long userId = SecurityUtil.getCurrentUser().getId();
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
-        PostLike postLike = new PostLike();
-        postLike.setPostId(postId);
-        postLike.setUserId(userId);
+    private final static String POST_LIKE_COUNT_TABLE = "post-like-counts";
+    private final static String POST_LIKE_RECORD_TABLE = "post-like-records";
+    private final static String COMMENT_LIKE_COUNT_TABLE = "comment-like-counts";
+    private final static String COMMENT_LIKE_RECORD_TABLE = "comment-like-records";
+    private final static String LIKED = "1";
+    private final static String UNLIKED = "0";
 
-        if(postLikeMapper.isPostLikedByUser(postId, userId)){
-            throw new ServiceException("不可重复点赞");
-        }
-
-        //标记需要更新贴子热度分值
-        statisticsService.markPostToFreshScore(postId);
-
-        return postMapper.increaseLikeCount(postId, 1L) > 0 && postLikeMapper.insert(postLike) > 0;
+    /**
+     * 将上面这些hash表拆，每个都解为TABLE_NUM个，将编号以后缀的形式加上。
+     * 操作时，通过postId 或 commentId 路由到某个表
+     * 将Redis中大的hash表拆成若干个小的，方便同步
+     */
+    private final static int TABLE_NUM = 10;
+    private String getTableName(Long id, String table){
+        return table + "-" + id%TABLE_NUM;
     }
 
     @Override
-    @Transactional
-    public boolean undoLikePost(Long postId) {
+    public void likePost(Long postId, boolean like) {
         Long userId = SecurityUtil.getCurrentUser().getId();
+        String likeRecordKey = userId + ":" + postId;
+        String postIdKey = postId.toString();
+        HashOperations<String, Object, Object> hashOps = redisTemplate.opsForHash();
 
-        PostLike postLike = new PostLike();
-        postLike.setPostId(postId);
-        postLike.setUserId(userId);
+        //路由到某张表
+        String postLikeCountTable = getTableName(postId, POST_LIKE_COUNT_TABLE);
+        String postLikeRecordTable = getTableName(postId, POST_LIKE_RECORD_TABLE);
 
-        if(!postLikeMapper.isPostLikedByUser(postId, userId)){
+        //判断是否已点赞
+        String likeStatus = (String) hashOps.get(postLikeRecordTable, likeRecordKey);
+        boolean liked = likeStatus != null ? LIKED.equals(likeStatus) : postLikeMapper.isPostLikedByUser(postId, userId);
+        if(liked && like){
+            throw new ServiceException("不可重复点赞");
+        }
+        if(!liked && !like){
             throw new ServiceException("未点赞");
         }
 
+        //检查缓存，若不存在则缓存
+        if(! Boolean.TRUE.equals(hashOps.hasKey(postLikeCountTable, postIdKey))){
+            Long likeCount = postMapper.selectLikeCount(postId);
+            hashOps.putIfAbsent(postLikeCountTable, postIdKey, likeCount.toString()); //使用If Absent 防止多次设置缓存覆盖 已经+1的正确缓存
+        }
+
+        //标记并累加
+        hashOps.put(postLikeRecordTable, likeRecordKey, like ? LIKED : UNLIKED);
+        hashOps.increment(postLikeCountTable, postIdKey, like ? 1 : -1);
+
         //标记需要更新贴子热度分值
         statisticsService.markPostToFreshScore(postId);
-
-        return postMapper.increaseLikeCount(postId, -1L) > 0 && postLikeMapper.delete(new QueryWrapper<>(postLike)) > 0;
     }
 
     @Override
     public boolean hasLikedPost(Long postId, Long userId) {
-        return postLikeMapper.isPostLikedByUser(postId, userId);
+        String likeRecordKey = userId + ":" + postId;
+        String postLikeRecordTable = getTableName(postId, POST_LIKE_RECORD_TABLE);
+
+        //优先比较缓存中的新值
+        String likeStatus = (String) redisTemplate.opsForHash().get(postLikeRecordTable, likeRecordKey);
+        return likeStatus != null ? LIKED.equals(likeStatus) : postLikeMapper.isPostLikedByUser(postId, userId);
     }
 
     @Override
-    @Transactional
-    public boolean likeComment(Long commentId) {
-        Long userId = SecurityUtil.getCurrentUser().getId();
-
-        CommentLike commentLike = new CommentLike();
-        commentLike.setCommentId(commentId);
-        commentLike.setUserId(userId);
-
-        if(commentLikeMapper.isCommentLikedByUser(commentId, userId)){
-            throw new ServiceException("不可重复点赞");
-        }
-
-        return commentMapper.increaseLikeCount(commentId, 1L) > 0 && commentLikeMapper.insert(commentLike) > 0;
+    public Long getPostLikeCountFromCache(Long postId) {
+        String postLikeCountTable = getTableName(postId, POST_LIKE_COUNT_TABLE);
+        Object value = redisTemplate.opsForHash().get(postLikeCountTable, postId.toString());
+        return value != null ? Long.parseLong((String) value) : null;
     }
 
     @Override
-    @Transactional
-    public boolean undoLikeComment(Long commentId) {
-        Long userId = SecurityUtil.getCurrentUser().getId();
-
-        CommentLike postLike = new CommentLike();
-        postLike.setCommentId(commentId);
-        postLike.setUserId(userId);
-
-        if(!commentLikeMapper.isCommentLikedByUser(commentId, userId)){
-            throw new ServiceException("未点赞");
-        }
-
-        return commentMapper.increaseLikeCount(commentId, -1L) > 0 && commentLikeMapper.delete(new QueryWrapper<>(postLike)) > 0;
+    public void likeComment(Long commentId, boolean like) {
+        //TODO
     }
 
     @Override
     public boolean hasLikedComment(Long commentId, Long userId) {
-        return commentLikeMapper.isCommentLikedByUser(commentId, userId);
+        //TODO:
+        return true;
+    }
+
+    @Override
+    public Long getCommentLikeCountFromCache(Long commentId) {
+        Object value = redisTemplate.opsForHash().get(COMMENT_LIKE_COUNT_TABLE, commentId.toString());
+        return value != null ? Long.parseLong((String) value) : null;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void syncPostLikeCount(){
+        long begin = System.nanoTime();
+        log.info("开始同步贴子点赞数据");
+
+        //同步贴子点赞量
+        for(int i = 0; i < TABLE_NUM; i++){
+            String postLikeCountTable = POST_LIKE_COUNT_TABLE + "-" + i;
+            String postLikeRecordTable = POST_LIKE_RECORD_TABLE + "-" + i;
+
+            //在一个事务中获取并删除，避免多个进程同时开始同步该块。并且不会干扰新计数的开始。
+            List<Object> result = redisTemplate.execute(new SessionCallback<List<Object>>() {
+                @Override
+                public List<Object> execute(@NotNull RedisOperations operations) throws DataAccessException {
+                    operations.multi();
+                    operations.opsForHash().entries(postLikeCountTable);
+                    operations.opsForHash().entries(postLikeRecordTable);
+                    operations.unlink(postLikeCountTable);
+                    operations.unlink(postLikeRecordTable);
+                    return operations.exec();
+                }
+            });
+            Map<String, String> postLikeCounts = (Map<String, String>) result.get(0);
+            Map<String, String> postLikeRecords = (Map<String, String>) result.get(1);
+            log.info("同步 {} 至数据库(size: {})", postLikeCountTable, postLikeCounts.size());
+            log.info("同步 {} 至数据库(size: {})", postLikeRecordTable, postLikeRecords.size());
+
+            //同步至点赞数量数据库
+            postLikeCounts.forEach((key, value)->{
+                postMapper.updateLikeCount(Long.parseLong(key), Long.parseLong(value));
+            });
+
+            //同步用户点赞记录至数据库
+            List<PostLike> postLikesToInsert = new ArrayList<>();
+            List<PostLike> postLikesToDelete = new ArrayList<>();
+            postLikeRecords.forEach((key, value)->{
+                String[] split = key.split(":");
+                PostLike postLike = new PostLike();
+                postLike.setUserId(Long.parseLong(split[0]));
+                postLike.setPostId(Long.parseLong(split[1]));
+
+                if(LIKED.equals(value)){
+                    postLikesToInsert.add(postLike);
+                }else if(UNLIKED.equals(value)){
+                    postLikesToDelete.add(postLike);
+                }
+            });
+            if(!postLikesToInsert.isEmpty()){
+                postLikeMapper.insertPostLikes(postLikesToInsert);
+            }
+            if(!postLikesToDelete.isEmpty()){
+                postLikeMapper.deletePostLikes(postLikesToDelete);
+            }
+        }
+
+        long end = System.nanoTime();
+        log.info("贴子点赞数据同步完成. 耗时:{}ms", (end-begin)/1e6);
+    }
+
+    @Override
+    public void syncCommentLikeCount() {
+        //TODO
     }
 }

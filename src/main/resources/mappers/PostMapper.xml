@@ -13,10 +13,6 @@
         </foreach>
     </select>
 
-    <update id="increaseLikeCount">
-        UPDATE t_post SET like_count = like_count + #{delta} WHERE id = #{postId}
-    </update>
-
     <select id="selectViewCount" resultType="long">
         SELECT view_count FROM t_post WHERE id = #{postId};
     </select>
@@ -28,6 +24,10 @@
             #{postId}
         </foreach>
     </select>
+
+    <update id="updateLikeCount">
+        UPDATE t_post SET like_count = #{likeCount} WHERE id = #{postId}
+    </update>
 
     <update id="increaseViewCount">
         UPDATE t_post SET view_count = view_count + #{delta} WHERE id = #{postId}

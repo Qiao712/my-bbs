@@ -10,5 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 public interface CommentMapper extends BaseMapper<Comment> {
     IPage<CommentDetailDto> listCommentDetailDtos(IPage<?> page, Long authorId);
 
-    Integer increaseLikeCount(Long commentId, long delta);
+    Integer updateLikeCount(Long commentId, Long likeCount);
+
+    Long selectLikeCount(Long commentId);
 }

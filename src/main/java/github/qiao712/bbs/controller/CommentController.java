@@ -60,12 +60,14 @@ public class CommentController {
     @GetMapping("/{commentId}/like")
     @PreAuthorize("isAuthenticated() and hasAuthority('comment:like')")
     public Result<Void> likeComment(@PathVariable("commentId") Long commentId){
-        return Result.build(likeService.likeComment(commentId));
+        likeService.likeComment(commentId, true);
+        return Result.succeed();
     }
 
     @GetMapping("/{commentId}/undo-like")
     @PreAuthorize("isAuthenticated() and hasAuthority('comment:like')")
     public Result<Void> undoLikeComment(@PathVariable("commentId") Long commentId){
-        return Result.build(likeService.undoLikeComment(commentId));
+        likeService.likeComment(commentId, false);
+        return Result.succeed();
     }
 }

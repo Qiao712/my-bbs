@@ -6,4 +6,18 @@
             EXISTS (SELECT id FROM t_post_like WHERE user_id = #{userId} AND post_id = #{postId})
         ) liked
     </select>
+
+    <insert id="insertPostLikes">
+        INSERT IGNORE INTO t_post_like(post_id, user_id) VALUES
+        <foreach collection="postLikes" separator="," item="postLike">
+            (#{postLike.postId}, #{postLike.userId})
+        </foreach>
+    </insert>
+
+    <delete id="deletePostLikes">
+        DELETE FROM t_post_like WHERE (post_id, user_id) IN
+        <foreach collection="postLikes" separator="," item="postLike" open="(" close=")">
+            (#{postLike.postId}, #{postLike.userId})
+        </foreach>
+    </delete>
 </mapper>

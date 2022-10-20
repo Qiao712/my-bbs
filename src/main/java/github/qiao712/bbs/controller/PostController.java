@@ -70,12 +70,14 @@ public class PostController {
     @GetMapping("/{postId}/like")
     @PreAuthorize("isAuthenticated() and hasAuthority('post:like')")
     public Result<Void> likePost(@PathVariable("postId") Long postId){
-        return Result.build(likeService.likePost(postId));
+        likeService.likePost(postId, true);
+        return Result.succeed();
     }
 
     @GetMapping("/{postId}/undo-like")
     @PreAuthorize("isAuthenticated() and hasAuthority('post:like')")
     public Result<Void> undoLikePost(@PathVariable("postId") Long postId){
-        return Result.build(likeService.undoLikePost(postId));
+        likeService.likePost(postId, false);
+        return Result.succeed();
     }
 }

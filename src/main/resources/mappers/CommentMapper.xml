@@ -49,7 +49,11 @@
     </select>
 
 
-    <update id="increaseLikeCount">
-        UPDATE t_comment SET like_count = like_count + #{delta} WHERE id = #{commentId}
+    <update id="updateLikeCount">
+        UPDATE t_comment SET like_count = #{likeCount} WHERE id = #{commentId}
     </update>
+
+    <select id="selectLikeCount" resultType="Long">
+        SELECT like_count FROM t_comment WHERE id = #{commentId}
+    </select>
 </mapper>

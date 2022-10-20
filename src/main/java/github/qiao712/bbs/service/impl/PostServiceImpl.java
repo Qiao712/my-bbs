@@ -225,6 +225,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //当前用户是否已点赞
         postDto.setLiked(likeService.hasLikedPost(post.getId(), currentUserId));
+
+        //查询Redis缓存的最新的点赞数量
+        Long likeCount = likeService.getPostLikeCountFromCache(post.getId());
+        if(likeCount != null){
+            postDto.setLikeCount(likeCount);
+        }
         return postDto;
     }
 }
