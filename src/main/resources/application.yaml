@@ -12,21 +12,8 @@ spring:
   # Redis
   redis:
     host:
-    password: lty0712
-    database: 0
-
-  # RabbitMQ
-  rabbitmq:
-    host:
-    port:
-    username:
     password:
-    listener:
-      simple:
-        retry:
-          enabled: true
-          max-attempts: 3        #最大重试次数
-          initial-interval: 3000 #重试间隔时间（单位毫秒）
+    database: 0
 
   # 文件上传大小限制
   servlet:
@@ -35,6 +22,36 @@ spring:
       max-request-size: 10MB     #最大请求文件的大小
       max-file-size: 8MB         #设置单个文件最大长度
       file-size-threshold: 10MB   #当文件达到多少时进行磁盘写入
+
+  # Kafka
+  kafka:
+    bootstrap-servers:
+    # producer 生产者配置
+    producer:
+      retries: 0  # 重试次数
+      acks: 1     # 应答级别:多少个分区副本备份完成时向生产者发送ack确认(可选0、1、all/-1)
+      batch-size: 16384       # 批量大小
+      buffer-memory: 33554432 # 生产端缓冲区大小
+      # 序列化器
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    # consumer 消费者配置
+    consumer:
+      group-id: default         # 默认的消费组ID
+      enable-auto-commit: true    # 是否自动提交offset
+      auto-commit-interval: 100   # 提交offset延时(接收到消息后多久提交offset)
+      # earliest:当各分区下有已提交的offset时，从提交的offset开始消费；无提交的offset时，从头开始消费
+      # latest:当各分区下有已提交的offset时，从提交的offset开始消费；无提交的offset时，消费新产生的该分区下的数据
+      # none:topic各分区都存在已提交的offset时，从offset后开始消费；只要有一个分区不存在已提交的offset，则抛出异常
+      auto-offset-reset: latest
+      # 序列化器
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # 使用AntPathMatcher以兼容Swagger文档
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
 
 mybatis-plus:
   mapper-locations: classpath:mappers/*.xml
@@ -65,6 +82,6 @@ sys:
   # ElasticSearch地址
   elastic-search:
     hosts:
-      - localhost:9200
+      -
     username: elastic
     password:

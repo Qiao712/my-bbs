@@ -1,10 +1,11 @@
 package github.qiao712.bbs;
 
+import com.alibaba.fastjson.JSON;
+import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.mq.PostMessage;
 import github.qiao712.bbs.util.HtmlUtil;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.io.File;
 import java.io.FileReader;
@@ -50,6 +51,12 @@ public class TestSomething {
         System.out.println(HtmlUtil.getText(html));
     }
 
-    @Autowired
-    private ApplicationEventPublisher publisher;
+    public static void main(String[] args) {
+        PostMessage postMessage = PostMessage.buildPostAddMessage(new Post());
+        String s = JSON.toJSONString(postMessage);
+        System.out.println(s);
+
+        PostMessage postMessage1 = JSON.parseObject(s, PostMessage.class);
+        System.out.println(postMessage1.getPostMessageType().getClass());
+    }
 }

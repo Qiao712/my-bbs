@@ -1,35 +1,33 @@
 package github.qiao712.bbs.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.rabbitmq.client.ConnectionFactory;
-import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.amqp.core.ReturnedMessage;
-import org.springframework.amqp.rabbit.connection.CorrelationData;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class MQConfig {
-    public static final String POST_EXCHANGE = "post";
-    public static final String POST_ADD_QUEUE = "post-add";
-    public static final String POST_UPDATE_QUEUE = "post-update";
-    public static final String POST_DELETE_QUEUE = "post-delete";
+    public static final String POST_TOPIC = "post";
+    public static final String POST_ADD_KEY = "post-add";
+    public static final String POST_UPDATE_KEY = "post-update";
+    public static final String POST_DELETE_KEY = "post-delete";
 
-    public static final String COMMENT_EXCHANGE = "comment";
-    public static final String COMMENT_ADD_QUEUE = "comment-add";
+    public static final String COMMENT_TOPIC = "comment";
+    public static final String COMMENT_ADD_KEY = "comment-add";
 
+
+    private int numPartitions = 3;
+    private int replicationFactor = 2;
 
     /**
-     * 配置消息转换器
+     * 创建Topic
      */
     @Bean
-    public MessageConverter messageConverter(){
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());  //添加对Java8 LocalDateTime的支持
-        return new Jackson2JsonMessageConverter(objectMapper);
+    public NewTopic postTopic(){
+        return new NewTopic(POST_TOPIC, numPartitions, (short) replicationFactor);
+    }
+
+    @Bean
+    public NewTopic commentTopic(){
+        return new NewTopic(COMMENT_TOPIC, numPartitions, (short) replicationFactor);
     }
 }

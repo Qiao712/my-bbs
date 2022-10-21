@@ -1,5 +1,6 @@
 package github.qiao712.bbs.mq;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.qiao712.bbs.config.MQConfig;
 import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
@@ -9,12 +10,9 @@ import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.MessageService;
 import github.qiao712.bbs.service.UserService;
-import org.springframework.amqp.core.ExchangeTypes;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -30,12 +28,20 @@ public class CommentMessageListener {
     @Autowired
     private CommentMapper commentMapper;
 
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(name = MQConfig.COMMENT_ADD_QUEUE),
-            exchange = @Exchange(name = MQConfig.COMMENT_EXCHANGE, type = ExchangeTypes.DIRECT),
-            key = {MQConfig.COMMENT_ADD_QUEUE}
-    ))
-    public void listenCommentAdd(Comment comment){
+    @KafkaListener(topics = {MQConfig.COMMENT_TOPIC})
+    public void onMessage(ConsumerRecord<String, String> consumerRecord){
+        CommentMessage commentMessage = JSON.parseObject(consumerRecord.value(), CommentMessage.class);
+
+        switch (commentMessage.getCommentMessageType()){
+            case COMMENT_ADD:
+                sendCommentNoticeMessage(commentMessage.getComment());
+        }
+    }
+
+    /**
+     * 发送评论提醒消失给被回复用户
+     */
+    public void sendCommentNoticeMessage(Comment comment){
         ReplyMessageContent messageContent = new ReplyMessageContent();
 
         messageContent.setCommentId(comment.getId());
