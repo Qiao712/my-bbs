@@ -8,10 +8,11 @@ import javax.validation.constraints.NotNull;
 
 @Data
 public class PrivateMessageDto {
-    @NotNull
     private Long receiverId;
 
-    @NotBlank
-    @Length(min = 1, max = 500)
-    private String text;
+    private Long senderId;
+
+    private Integer type;
+
+    private String content;
 }

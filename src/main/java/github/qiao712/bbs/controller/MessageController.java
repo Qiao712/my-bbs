@@ -29,33 +29,6 @@ public class MessageController {
         return Result.succeed(messageService.listSystemMessages(pageQuery));
     }
 
-    @PostMapping("/private")
-    @PreAuthorize("isAuthenticated() and hasAuthority('message:send')")
-    public Result<Void> sendPrivateMessage(@Validated  @RequestBody PrivateMessageDto privateMessageDto){
-        return Result.build(messageService.sendPrivateMessage(privateMessageDto.getReceiverId(), privateMessageDto.getText()));
-    }
-
-    @GetMapping("/conversations")
-    @PreAuthorize("isAuthenticated() and hasAuthority('message:conversation:list')")
-    public Result<IPage<ConversationDto>> listConversations(@Validated PageQuery pageQuery){
-        return Result.succeed(messageService.listConversations(pageQuery));
-    }
-
-    @GetMapping("/private")
-    @PreAuthorize("isAuthenticated() and hasAuthority('message:private:list')")
-    public Result<List<MessageDto>> listPrivateMessages(@NotNull Long receiverId,
-                                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
-                                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime before,
-                                                        Integer limit){
-        return Result.succeed(messageService.listPrivateMessages(receiverId, after, before, limit));
-    }
-
-    @GetMapping("/private/count")
-    @PreAuthorize("isAuthenticated()")
-    public Result<Long> getUnacknowledgedPrivateMessageCount(){
-        return Result.succeed(messageService.getUnacknowledgedPrivateMessageCount());
-    }
-
     @GetMapping("/count")
     @PreAuthorize("isAuthenticated()")
     public Result<Long> getUnacknowledgedSystemMessageCount(){

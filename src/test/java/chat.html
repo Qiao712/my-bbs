@@ -1,0 +1,91 @@
+<head>
+    <meta charset="utf-8"/>
+</head>
+
+<body>
+<h1>
+    Test
+</h1>
+
+<div>
+    <form>
+        WebSocket地址:<input name="address" value="ws://localhost:8081/api/chat"/>
+        <input type="button" onclick="connect(this.form.address.value)" value="连接"/>
+    </form>
+
+    <div>
+        状态:<span id="state" style="color: red">未连接</span>
+    </div>
+
+    <div>
+        <textarea id="dialog" style="width: 700px; height: 400px;"></textarea>
+    </div>
+
+    <form>
+        接收者UserId:<input name="receiver"/>
+        消息:<input name="message"/>
+        <br/>
+        <input type="button" value="发送" onclick="sendMessage(this.form.receiver.value, this.form.message.value)"/>
+    </form>
+</div>
+
+<script type="text/javascript">
+    let socket
+    let textArea = document.getElementById("dialog")
+    let state = document.getElementById("state")
+
+    function connect(wsUri){
+        if(window.WebSocket){
+            socket = new window.WebSocket(wsUri)
+        }else{
+            socket = new window.MozWebSocket(wsUri)
+        }
+
+        if(!socket){
+            alert("该浏览器不支持WebSocket")
+        }else{
+            //连接建立
+            socket.onopen = (event)=>{
+                console.info("连接建立", event)
+                state.innerHTML = "已连接"
+                state.style.color = "green"
+                textArea.value = textArea.value + "连接建立.\n"
+            }
+
+            //接受到消息
+            socket.onmessage = (event)=>{
+                console.log("接受", event)
+                let message = JSON.parse(event.data)
+                textArea.value = textArea.value + '[' + message.senderId + ']' + message.content + "\n"
+            }
+
+            //连接断开
+            socket.onclose = (event)=>{
+                console.log("连接关闭", event)
+                state.innerHTML = "未连接"
+                state.style.color = "red"
+                textArea.value = textArea.value + "连接断开.\n"
+            }
+        }
+    }
+
+    function sendMessage(receiver, message){
+        if(!socket){
+            alert("未建立连接")
+            return
+        }
+
+        if(socket.readyState == WebSocket.OPEN){
+            let messageRequest = {
+                type: 1,
+                receiverId: receiver,
+                content: message
+            }
+            socket.send(JSON.stringify(messageRequest))
+            textArea.value = textArea.value + "[我]" + message + "\n"
+        }else{
+            console.log("连接不可用")
+        }
+    }
+</script>
+</body>

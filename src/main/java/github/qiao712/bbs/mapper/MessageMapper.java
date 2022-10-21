@@ -10,11 +10,5 @@ import java.util.List;
 
 @Mapper
 public interface MessageMapper extends BaseMapper<Message> {
-    IPage<Byte[]> selectConversationIds(IPage<?> page, Long userId);
-
-    Message selectLatestMessageByConversationId(Byte[] conversationId);
-
-    List<Message> selectPrivateMessages(byte[] conversationId, LocalDateTime after, LocalDateTime before, int limit);
-
     Integer acknowledgeMessages(List<Long> messageIds);
 }

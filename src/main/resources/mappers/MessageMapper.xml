@@ -1,32 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="github.qiao712.bbs.mapper.MessageMapper">
-    <select id="selectConversationIds" resultType="byte[]">
-        SELECT DISTINCT conversation_id FROM t_message
-        WHERE (receiver_id = #{userId} OR sender_id = #{userId}) AND type = 'private'
-        ORDER BY create_time DESC
-    </select>
-
-    <select id="selectLatestMessageByConversationId" resultType="Message">
-        SELECT * FROM t_message
-        WHERE conversation_id = #{conversationId} AND type = 'private'
-        ORDER BY create_time DESC
-        LIMIT 1
-    </select>
-
-    <select id="selectPrivateMessages" resultType="Message">
-        SELECT * FROM t_message
-        WHERE conversation_id = #{conversationId} AND type = 'private'
-            <if test="after != null">
-                AND create_time > #{after}
-            </if>
-            <if test="before != null">
-                AND create_time &lt; #{before}
-            </if>
-        ORDER BY create_time DESC
-        LIMIT #{limit}
-    </select>
-
     <update id="acknowledgeMessages">
         UPDATE t_message
         SET is_acknowledged = true

@@ -34,10 +34,6 @@ import java.util.stream.Collectors;
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> implements MessageService {
     @Autowired
     private MessageMapper messageMapper;
-    @Autowired
-    private UserMapper userMapper;
-    @Autowired
-    private UserService userService;
 
     @Override
     public boolean sendMessage(Long senderId, Long receiverId, MessageContent content) {
@@ -48,108 +44,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
         message.setType(getMessageType(content.getClass()));
         message.setIsAcknowledged(false);
 
-        //两个用户之间的会话id
-        if(Objects.equals(message.getType().toLowerCase(), "private") && senderId != null && receiverId != null){
-            message.setConversationId(getConversationId(senderId, receiverId));
-        }
-
         return messageMapper.insert(message) > 0;
-    }
-
-    @Override
-    public boolean sendPrivateMessage(Long receiverId, String text) {
-        Long senderId = SecurityUtil.getCurrentUser().getId();
-
-        if(Objects.equals(receiverId, senderId)){
-            throw new ServiceException("禁止向自己发送私信");
-        }
-
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", receiverId);
-        if(!userMapper.exists(queryWrapper)){
-            throw new ServiceException("目标用户不存在");
-        }
-
-        PrivateMessageContent messageContent = new PrivateMessageContent();
-        messageContent.setText(text);
-        return sendMessage(senderId, receiverId, messageContent);
-    }
-
-    @Override
-    public IPage<ConversationDto> listConversations(PageQuery pageQuery) {
-        Long currentUserId = SecurityUtil.getCurrentUser().getId();
-
-        IPage<Byte[]> conversationIdPage = messageMapper.selectConversationIds(pageQuery.getIPage(), currentUserId);
-        List<Byte[]> conversationIds = conversationIdPage.getRecords();
-
-        List<ConversationDto> conversationDtos = new ArrayList<>(conversationIds.size());
-        for (Byte[] conversationId : conversationIds) {
-            Message message = messageMapper.selectLatestMessageByConversationId(conversationId);
-            ConversationDto conversationDto = new ConversationDto();
-
-            conversationDto.setCreateTime(message.getCreateTime());
-
-            PrivateMessageContent messageContent = JSON.parseObject(message.getContent(), PrivateMessageContent.class);
-            conversationDto.setLatestMessage(messageContent.getText());
-
-            //设置对方用户信息
-            Long userId = !Objects.equals(message.getReceiverId(), currentUserId) ? message.getReceiverId() : message.getSenderId();
-            User user = userService.getUser(userId);
-            conversationDto.setUserId(userId);
-            conversationDto.setAvatarUrl(user.getAvatarUrl());
-            conversationDto.setUsername(user.getUsername());
-
-            //获取会话内未读消息数量
-            LambdaQueryWrapper<Message> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(Message::getIsAcknowledged, false);
-            queryWrapper.eq(Message::getConversationId, conversationId);
-            queryWrapper.eq(Message::getReceiverId, currentUserId);
-            queryWrapper.eq(Message::getType, "private");
-            conversationDto.setUnacknowledgedCount(messageMapper.selectCount(queryWrapper));
-
-            conversationDtos.add(conversationDto);
-        }
-
-        return PageUtil.replaceRecords(conversationIdPage, conversationDtos);
-    }
-
-    @Override
-    public List<MessageDto> listPrivateMessages(Long receiverId, LocalDateTime after, LocalDateTime before, Integer limit) {
-        Long currentUserId = SecurityUtil.getCurrentUser().getId();
-
-        if(limit == null){
-            limit = 100;
-        }
-
-        byte[] conversationId = getConversationId(currentUserId, receiverId);
-        List<Message> messages = messageMapper.selectPrivateMessages(conversationId, after, before, limit);
-
-        List<MessageDto> messageDtos = new ArrayList<>(messages.size());
-        for (Message message : messages) {
-            messageDtos.add(convertToMessageDto(message, PrivateMessageContent.class));
-        }
-
-        //确认消息
-        List<Long> messageIds = new ArrayList<>(messages.size());
-        for (Message message : messages) {
-            if(Objects.equals(message.getReceiverId(), currentUserId) && !message.getIsAcknowledged()){
-                messageIds.add(message.getId());
-            }
-        }
-        if(!messageIds.isEmpty()) messageMapper.acknowledgeMessages(messageIds);
-
-        return messageDtos;
-    }
-
-    @Override
-    public Long getUnacknowledgedPrivateMessageCount() {
-        Long currentUserId = SecurityUtil.getCurrentUser().getId();
-
-        Message messageQuery = new Message();
-        messageQuery.setReceiverId(currentUserId);
-        messageQuery.setType("private");
-        messageQuery.setIsAcknowledged(false);
-        return messageMapper.selectCount(new QueryWrapper<>(messageQuery));
     }
 
     @Override
@@ -197,26 +92,6 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             throw new IllegalArgumentException("MessageContent子类命名不规范,应以MessageContent为后缀.");
         }
         return simpleName.substring(0, i);
-    }
-
-    /**
-     * 计算会话id
-     * 将senderId和receiverId的字节序列拼接，较大的放在高8位，较小的放在低8位。
-     */
-    private byte[] getConversationId(long senderId, long receiverId){
-        long bigger = Math.max(senderId, receiverId);
-        long smaller = Math.min(senderId, receiverId);
-        byte[] conversationId = new byte[16];
-        long mask = 0xFF;
-
-        for(int i = 0; i < 8; i++){
-            conversationId[i] = (byte) (smaller & mask);
-            conversationId[i+8] = (byte) (bigger & mask);
-            smaller >>= 8;
-            bigger >>= 8;
-        }
-
-        return conversationId;
     }
 
     /**
