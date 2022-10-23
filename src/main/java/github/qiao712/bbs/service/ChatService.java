@@ -23,9 +23,14 @@ public interface ChatService extends IService<PrivateMessage> {
     void removeChannel(ChatChannel channel);
 
     /**
-     * 处理消息
+     * 处理接收到的消息
      */
-    void handlerMessages(ChatChannel channel, String message);
+    void receiveMessage(ChatChannel channel, PrivateMessageDto privateMessageDto);
+
+    /**
+     * 将消息通过该节点持有的WebSocket连接发送给指定用户
+     */
+    boolean sendMessage(PrivateMessageDto privateMessageDto);
 
     /**
      * 列出会话列表
@@ -40,6 +45,12 @@ public interface ChatService extends IService<PrivateMessage> {
      * @param limit 获取数量
      */
     List<PrivateMessageDto> listPrivateMessages(Long receiverId, LocalDateTime after, LocalDateTime before, Integer limit);
+
+    /**
+     * 确认与某用户对话消息
+     * 若会话ID为空，则确认全部消息
+     */
+    boolean acknowledge(Long userId);
 
     /**
      * 获取未读的私信消息数量

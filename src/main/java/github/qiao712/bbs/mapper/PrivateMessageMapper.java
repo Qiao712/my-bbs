@@ -11,14 +11,7 @@ import java.util.List;
 
 @Mapper
 public interface PrivateMessageMapper extends BaseMapper<PrivateMessage> {
-    /**
-     * 获取时间倒序的会话列表
-     */
-    IPage<Byte[]> selectConversationIds(IPage<?> page, Long userId);
-
-    PrivateMessage selectLatestMessageByConversationId(Byte[] conversationId);
-
-    List<PrivateMessage> selectPrivateMessages(byte[] conversationId, LocalDateTime after, LocalDateTime before, int limit);
+    List<PrivateMessage> selectPrivateMessages(Long conversationId, LocalDateTime after, LocalDateTime before, int limit);
 
     Integer acknowledgeMessages(List<Long> messageIds);
 }

@@ -1,10 +1,14 @@
 package github.qiao712.bbs;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import github.qiao712.bbs.domain.entity.Conversation;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.mapper.ConversationMapper;
 import github.qiao712.bbs.mq.PostMessage;
 import github.qiao712.bbs.util.HtmlUtil;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
@@ -51,12 +55,27 @@ public class TestSomething {
         System.out.println(HtmlUtil.getText(html));
     }
 
-    public static void main(String[] args) {
-        PostMessage postMessage = PostMessage.buildPostAddMessage(new Post());
-        String s = JSON.toJSONString(postMessage);
-        System.out.println(s);
+    @Autowired
+    private ConversationMapper conversationMapper;
 
-        PostMessage postMessage1 = JSON.parseObject(s, PostMessage.class);
-        System.out.println(postMessage1.getPostMessageType().getClass());
+    @Test
+    public void testSql(){
+        LambdaQueryWrapper<Conversation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper
+                .eq(Conversation::getUser1Id, 1)
+                .or()
+                .eq(Conversation::getUser2Id, 1);
+
+        System.out.println(queryWrapper.getTargetSql());
+    }
+
+    public static void main(String[] args) {
+        LambdaQueryWrapper<Conversation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper
+                .eq(Conversation::getUser1Id, 1)
+                .or()
+                .eq(Conversation::getUser2Id, 1);
+
+        System.out.println(queryWrapper.getTargetSql());
     }
 }

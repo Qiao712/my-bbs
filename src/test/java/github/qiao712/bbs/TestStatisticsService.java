@@ -36,4 +36,6 @@ public class TestStatisticsService {
     public void testRefreshPostScores(){
         statisticsService.refreshPostScores();
     }
+
+
 }

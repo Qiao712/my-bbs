@@ -25,13 +25,13 @@ public class ChatController {
     private ChatService chatService;
 
     @GetMapping("/conversations")
-    @PreAuthorize("isAuthenticated() and hasAuthority('message:conversation:list')")
+    @PreAuthorize("isAuthenticated() and hasAuthority('chat:conversation:list')")
     public Result<IPage<ConversationDto>> listConversations(@Validated PageQuery pageQuery){
         return Result.succeed(chatService.listConversations(pageQuery));
     }
 
     @GetMapping("/messages")
-    @PreAuthorize("isAuthenticated() and hasAuthority('message:private:list')")
+    @PreAuthorize("isAuthenticated() and hasAuthority('chat:private:list')")
     public Result<List<PrivateMessageDto>> listPrivateMessages(@NotNull Long receiverId,
                                                                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
                                                                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime before,

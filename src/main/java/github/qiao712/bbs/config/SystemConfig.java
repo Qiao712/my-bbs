@@ -90,4 +90,9 @@ public class SystemConfig {
     }
 
     private AliOSS aliOSS;
+
+    /**
+     * 该进程标识，用于支持聊天服务的水平拓展。消息根据该id路由到目标用户所在的节点。
+     */
+    private String chatServerId;
 }

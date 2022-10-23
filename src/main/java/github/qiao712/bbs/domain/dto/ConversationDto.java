@@ -9,9 +9,8 @@ import java.time.LocalDateTime;
  */
 @Data
 public class ConversationDto {
-    private String latestMessage;           //最后一条消息
-    private Long unacknowledgedCount;       //未读消息数量
-    private LocalDateTime createTime;
+    private PrivateMessageDto latestMessage;           //最后一条消息
+    private Long unacknowledgedCount;                  //未读消息数量
 
     //对方用户信息
     private Long userId;

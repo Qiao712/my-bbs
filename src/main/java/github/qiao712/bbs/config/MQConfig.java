@@ -7,16 +7,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MQConfig {
     public static final String POST_TOPIC = "post";
-    public static final String POST_ADD_KEY = "post-add";
-    public static final String POST_UPDATE_KEY = "post-update";
-    public static final String POST_DELETE_KEY = "post-delete";
-
     public static final String COMMENT_TOPIC = "comment";
-    public static final String COMMENT_ADD_KEY = "comment-add";
 
-
-    private int numPartitions = 3;
-    private int replicationFactor = 2;
+    public final static int numPartitions = 3;
+    public final static int replicationFactor = 2;
 
     /**
      * 创建Topic

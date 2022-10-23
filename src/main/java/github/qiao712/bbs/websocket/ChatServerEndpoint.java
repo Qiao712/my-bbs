@@ -1,6 +1,9 @@
 package github.qiao712.bbs.websocket;
 
+import com.alibaba.fastjson.JSON;
+import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
+import github.qiao712.bbs.domain.dto.PrivateMessageDto;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.security.TokenManager;
 import github.qiao712.bbs.service.ChatService;
@@ -65,10 +68,11 @@ public class ChatServerEndpoint {
     @OnMessage
     public void onMessage(String message){
         try {
-            chatService.handlerMessages(channel, message);
+            PrivateMessageDto privateMessageDto = JSON.parseObject(message, PrivateMessageDto.class);
+            chatService.receiveMessage(channel, privateMessageDto);
         }catch (ServiceException e){
             //返回错误提示
-            channel.send(e.getMessage());
+            channel.send(Result.fail(e.getMessage()));
         }
     }
 

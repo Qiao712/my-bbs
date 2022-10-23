@@ -55,8 +55,12 @@
             //接受到消息
             socket.onmessage = (event)=>{
                 console.log("接受", event)
-                let message = JSON.parse(event.data)
-                textArea.value = textArea.value + '[' + message.senderId + ']' + message.content + "\n"
+                let response = JSON.parse(event.data)
+                if(response.status != 0){
+                    textArea.value = textArea.value + "错误:" + response.message + "\n"
+                }else{
+                    textArea.value = textArea.value + '[' + response.data.senderId + ']' + response.data.content + "\n"
+                }
             }
 
             //连接断开

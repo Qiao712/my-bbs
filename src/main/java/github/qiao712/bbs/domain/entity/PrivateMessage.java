@@ -23,7 +23,7 @@ public class PrivateMessage implements Serializable {
 
     private Long receiverId;
 
-    private byte[] conversationId;
+    private Long conversationId;
 
     @ApiModelProperty("消息的类型(0:文本消息)")
     private Integer type;
