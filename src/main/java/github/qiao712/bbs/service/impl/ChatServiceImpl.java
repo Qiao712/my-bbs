@@ -24,6 +24,8 @@ import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import github.qiao712.bbs.websocket.ChatChannel;
+import github.qiao712.bbs.websocket.Response;
+import github.qiao712.bbs.websocket.ResponseType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +68,7 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
 
     @Override
     public void addChannel(ChatChannel channel){
-        ChatChannel oldChannel = channels.putIfAbsent(channel.getUserId(), channel);
+        ChatChannel oldChannel = channels.put(channel.getUserId(), channel);
 
         //将旧连接下线
         if(oldChannel != null){
@@ -83,10 +85,10 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
 
     @Override
     public void removeChannel(ChatChannel channel){
-        //删除路由信息
-        redisTemplate.opsForHash().delete(CHAT_CHANNELS_TABLE, channel.getUserId().toString());
-
-        channels.remove(channel.getUserId());
+        //删除连接，要判断其是否已经被新的连接所替代
+        if(channels.remove(channel.getUserId(), channel)){
+            redisTemplate.opsForHash().delete(CHAT_CHANNELS_TABLE, channel.getUserId().toString());
+        }
     }
 
     @Override
@@ -162,7 +164,7 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
         ChatChannel receiverChannel = channels.get(privateMessageDto.getReceiverId());
         if(receiverChannel != null) {
             privateMessageDto.setSenderId(privateMessageDto.getSenderId());
-            receiverChannel.send(Result.succeed(privateMessageDto));
+            receiverChannel.send(new Response(ResponseType.PRIVATE_MESSAGE.ordinal(), privateMessageDto));
             return true;
         }
 

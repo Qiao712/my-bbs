@@ -3,7 +3,6 @@ package github.qiao712.bbs.websocket;
 import com.alibaba.fastjson.JSON;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.domain.dto.PrivateMessageDto;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.security.TokenManager;
 import github.qiao712.bbs.service.ChatService;
@@ -26,6 +25,11 @@ public class ChatServerEndpoint {
     //封装后的Session与用户信息
     private ChatChannel channel;
 
+    //最长心跳间隔--1min
+    private final long chatSessionMaxIdleTimeout = 60000;   //1min
+    //数据缓冲区长度
+    private final int maxBufferSize = 1024*1024*10;        //10KB
+
     /**
      * 用于注入TokenManager到静态变量
      * 每次连接，都会生成一个该类对象，所以不能使用@Autowaired注入普通字段，只能使用静态变量
@@ -42,8 +46,8 @@ public class ChatServerEndpoint {
     @OnOpen
     public void onOpen(Session session, @PathParam("token") String token){
         //设置会话
-//        session.setMaxBinaryMessageBufferSize();
-//        session.setMaxIdleTimeout();
+        session.setMaxBinaryMessageBufferSize(maxBufferSize);   //10KB
+        session.setMaxIdleTimeout(chatSessionMaxIdleTimeout);
 
         //获取用户登录信息
         AuthUser user = tokenManager.getUser(token);
@@ -56,7 +60,7 @@ public class ChatServerEndpoint {
             return;
         }
 
-        this.channel = new ChatChannel(session, user.getId());
+        channel = new ChatChannel(session, user.getId());
         chatService.addChannel(channel);
     }
 
@@ -68,8 +72,10 @@ public class ChatServerEndpoint {
     @OnMessage
     public void onMessage(String message){
         try {
-            PrivateMessageDto privateMessageDto = JSON.parseObject(message, PrivateMessageDto.class);
-            chatService.receiveMessage(channel, privateMessageDto);
+            Request request = JSON.parseObject(message, Request.class);
+            if(RequestType.PRIVATE_MESSAGE.ordinal() == request.getRequestType()){
+                chatService.receiveMessage(channel, request.getPrivateMessage());
+            }
         }catch (ServiceException e){
             //返回错误提示
             channel.send(Result.fail(e.getMessage()));

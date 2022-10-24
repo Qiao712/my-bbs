@@ -80,12 +80,16 @@
         }
 
         if(socket.readyState == WebSocket.OPEN){
-            let messageRequest = {
-                type: 1,
-                receiverId: receiver,
-                content: message
+            let request = {
+                requestType: 1,
+                privateMessage:{
+                    type: 1,
+                    receiverId: receiver,
+                    content: message
+                }
             }
-            socket.send(JSON.stringify(messageRequest))
+
+            socket.send(JSON.stringify(request))
             textArea.value = textArea.value + "[我]" + message + "\n"
         }else{
             console.log("连接不可用")

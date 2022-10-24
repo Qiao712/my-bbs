@@ -4,7 +4,7 @@ server:
 spring:
   #  配置数据源
   datasource:
-    username: root
+    username:
     password:
     url:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -83,5 +83,9 @@ sys:
   elastic-search:
     hosts:
       -
-    username: elastic
+    username:
     password:
+
+  # 该进程标识，用于支持聊天服务的水平拓展。消息根据该id路由到目标用户所在的节点。
+  # 以该值作为消息队列路由的标识
+  chatServerId: node-1
