@@ -40,7 +40,7 @@ public class SystemServiceImpl implements SystemService {
     @Override
     public Statistic getStatistic() {
         Statistic statistic = new Statistic();
-        statistic.setPostCount(questionMapper.selectCount(null));
+        statistic.setQuestionCount(questionMapper.selectCount(null));
         statistic.setUserCount(userMapper.selectCount(null));
         statistic.setCommentCount(commentMapper.selectCount(null));
         return statistic;

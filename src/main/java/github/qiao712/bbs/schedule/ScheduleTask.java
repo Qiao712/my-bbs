@@ -30,11 +30,11 @@ public class ScheduleTask {
     }
 
     /**
-     * 每间隔一定时间同步贴子浏览量至数据库 并 重新计算贴子热度值
+     * 每间隔一定时间同步问题浏览量至数据库 并 重新计算问题热度值
      */
     @Scheduled(fixedDelay = 3600, timeUnit = TimeUnit.SECONDS)
     public void refreshPost(){
-        statisticsService.syncPostViewCount();
-        statisticsService.refreshPostScores();
+        statisticsService.syncQuestionViewCount();
+        statisticsService.refreshQuestionScores();
     }
 }

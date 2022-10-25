@@ -57,7 +57,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     private RestHighLevelClient restClient;
 
     //索引库名称
-    private static final String POST_INDEX = "post";
+    private static final String QUESTION_INDEX = "question";
 
     //可以排序的字段
     private static final Set<String> sortableFields = new HashSet<>();
@@ -108,71 +108,71 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public void savePost(Question question) {
-        if(question == null || question.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
+    public void saveQuestion(Question question) {
+        if(question == null || question.getId() == null) throw new ServiceException("Question/Question.id 不可为空");
 
         //去除html样式
         if(question.getContent() != null) question.setContent(HtmlUtil.getText(question.getContent()));
         question.setLikeCount(null);
 
-        String postJson = toJSONString(question);
-        IndexRequest request = new IndexRequest(POST_INDEX).id(question.getId().toString());
-        request.source(postJson, XContentType.JSON);
+        String questionJson = toJSONString(question);
+        IndexRequest request = new IndexRequest(QUESTION_INDEX).id(question.getId().toString());
+        request.source(questionJson, XContentType.JSON);
         try {
             restClient.index(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            log.error("Post文档储存失败", e);
+            log.error("Question文档储存失败", e);
         }
     }
 
     @Override
-    public void removePost(Long postId) {
-        DeleteRequest request = new DeleteRequest(POST_INDEX, postId.toString());
+    public void removeQuestion(Long questionId) {
+        DeleteRequest request = new DeleteRequest(QUESTION_INDEX, questionId.toString());
         try {
             restClient.delete(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            log.error("Post文档删除失败", e);
+            log.error("Question文档删除失败", e);
         }
     }
 
     @Override
-    public void updatePost(Question question) {
-        if(question == null || question.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
+    public void updateQuestion(Question question) {
+        if(question == null || question.getId() == null) throw new ServiceException("Question/Question.id 不可为空");
 
-        UpdateRequest request = new UpdateRequest(POST_INDEX, question.getId().toString());
+        UpdateRequest request = new UpdateRequest(QUESTION_INDEX, question.getId().toString());
 
         if(question.getContent() != null) question.setContent(HtmlUtil.getText(question.getContent()));
-        String postJson = JSON.toJSONString(question);
-        request.doc(postJson, XContentType.JSON);
+        String questionJson = JSON.toJSONString(question);
+        request.doc(questionJson, XContentType.JSON);
 
         try {
             restClient.update(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            log.error("Post文档更新失败", e);
+            log.error("Question文档更新失败", e);
         }
     }
 
     @Override
-    public Question getPostDoc(Long postId) {
-        GetRequest request = new GetRequest(POST_INDEX, postId.toString());
+    public Question getQuestionDoc(Long questionId) {
+        GetRequest request = new GetRequest(QUESTION_INDEX, questionId.toString());
         GetResponse response = null;
         try {
             response = restClient.get(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            log.error("Post文档查询失败", e);
+            log.error("Question文档查询失败", e);
         }
 
         if(response != null && response.getSourceAsString() != null){
             return JSON.parseObject(response.getSourceAsString(), Question.class);
         }else{
-            log.error("Post文档查询失败");
+            log.error("Question文档查询失败");
             return null;
         }
     }
 
     @Override
-    public IPage<Question> searchPosts(PageQuery pageQuery, String text, Long authorId, Long forumId) {
-        SearchRequest request = new SearchRequest(POST_INDEX);
+    public IPage<Question> searchQuestions(PageQuery pageQuery, String text, Long authorId, Long forumId) {
+        SearchRequest request = new SearchRequest(QUESTION_INDEX);
 
         //定义查询语句(DSL)
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
@@ -216,13 +216,13 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
         if(response == null) throw new RuntimeException("搜索失败");
 
         //处理结果
-        Page<Question> postPage = new Page<>();
-        postPage.setCurrent(pageQuery.getPageNo());
-        postPage.setSize(pageQuery.getPageSize());
+        Page<Question> questionPage = new Page<>();
+        questionPage.setCurrent(pageQuery.getPageNo());
+        questionPage.setSize(pageQuery.getPageSize());
         if(response.getHits() == null){
-            postPage.setTotal(0);
-            postPage.setRecords(Collections.emptyList());
-            return postPage;
+            questionPage.setTotal(0);
+            questionPage.setRecords(Collections.emptyList());
+            return questionPage;
         }
 
         List<Question> questions = new ArrayList<>(pageQuery.getPageSize());
@@ -241,28 +241,28 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
 
             questions.add(question);
         }
-        postPage.setTotal(response.getHits().getTotalHits().value);
-        postPage.setRecords(questions);
+        questionPage.setTotal(response.getHits().getTotalHits().value);
+        questionPage.setRecords(questions);
 
-        return postPage;
+        return questionPage;
     }
 
     @Override
-    public void syncAllPosts() {
-        Page<Question> postPage = new Page<>(1, 100);
+    public void syncAllQuestions() {
+        Page<Question> questionPage = new Page<>(1, 100);
 
         do{
             //添加一批
             BulkRequest bulkRequest = new BulkRequest();
-            questionMapper.selectPage(postPage, new QueryWrapper<>());
+            questionMapper.selectPage(questionPage, new QueryWrapper<>());
 
-            for (Question question : postPage.getRecords()) {
-                IndexRequest indexRequest = new IndexRequest(POST_INDEX).id(question.getId().toString());
+            for (Question question : questionPage.getRecords()) {
+                IndexRequest indexRequest = new IndexRequest(QUESTION_INDEX).id(question.getId().toString());
 
                 question.setContent(HtmlUtil.getText(question.getContent()));
                 question.setLikeCount(null);
-                String postJson = toJSONString(question);
-                indexRequest.source(postJson, XContentType.JSON);
+                String questionJson = toJSONString(question);
+                indexRequest.source(questionJson, XContentType.JSON);
 
                 bulkRequest.add(indexRequest);
             }
@@ -273,9 +273,9 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
             }
 
             //下一页
-            postPage.setCurrent(postPage.getCurrent() + 1);
-        }while (postPage.getCurrent() <= postPage.getPages());
+            questionPage.setCurrent(questionPage.getCurrent() + 1);
+        }while (questionPage.getCurrent() <= questionPage.getPages());
 
-        log.info("同步完成, 已保存{}个Post", postPage.getTotal());
+        log.info("同步完成, 已保存{}个Question", questionPage.getTotal());
     }
 }

@@ -7,14 +7,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.domain.dto.PostDto;
+import github.qiao712.bbs.domain.dto.QuestionDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.QuestionMapper;
-import github.qiao712.bbs.mq.PostMessageSender;
+import github.qiao712.bbs.mq.QuestionMessageSender;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
@@ -29,9 +29,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service("postService")
+@Service("questionService")
 @Transactional
-public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> implements PostService {
+public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
     @Autowired
     private QuestionMapper questionMapper;
     @Autowired
@@ -53,23 +53,23 @@ public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> imple
     @Autowired
     private StatisticsService statisticsService;
     @Autowired
-    private PostMessageSender postMessageSender;
+    private QuestionMessageSender questionMessageSender;
 
-    //Post中允许排序的列
+    //Question中允许排序的列
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
 
-    //贴子中图片的source(标识)
-    public final static String POST_IMAGE_SOURCE = "post-image";
+    //问题中图片的source(标识)
+    public final static String QUESTION_IMAGE_SOURCE = "question-image";
 
     @Override
     @Transactional
-    public boolean addPost(Question question) {
+    public boolean addQuestion(Question question) {
         //设置作者id
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         question.setAuthorId(currentUser.getId());
 
-        //初始化贴子热度分数
-        question.setScore(statisticsService.computePostScore(0, 0, 0, LocalDateTime.now()));
+        //初始化问题热度分数
+        question.setScore(statisticsService.computeQuestionScore(0, 0, 0, LocalDateTime.now()));
 
         if(questionMapper.insert(question) == 0){
             return false;
@@ -77,17 +77,17 @@ public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> imple
 
         //解析出引用的图片
         List<String> urls = HtmlUtil.getImageUrls(question.getContent());
-        if(urls.size() > systemConfig.getMaxPostImageNum()){
+        if(urls.size() > systemConfig.getMaxQuestionImageNum()){
             throw new ServiceException("图片数量超出限制");
         }
 
-        //如果文件的上传者是该该用户(贴子作者)，且上传来源为贴子图片，则记录该贴子对图片的引用(记录为该贴子的一个附件)
+        //如果文件的上传者是该该用户(问题作者)，且上传来源为问题图片，则记录该问题对图片的引用(记录为该问题的一个附件)
         List<Long> imageFileIds = new ArrayList<>(urls.size());
         for (String url : urls) {
             FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
             if(imageFileIdentity == null) continue;  //为外部链接
 
-            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId()) && POST_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
+            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId()) && QUESTION_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
                 imageFileIds.add(imageFileIdentity.getId());
             }
         }
@@ -99,7 +99,7 @@ public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> imple
         }
 
         //发布添加事件，以同步至ElasticSearch
-        postMessageSender.sendPostAddMessage(question);
+        questionMessageSender.sendQuestionAddMessage(question);
         return true;
     }
 
@@ -107,26 +107,26 @@ public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> imple
     @Transactional
     public String uploadImage(MultipartFile image) {
         //上传为临时文件
-        FileIdentity fileIdentity = fileService.uploadImage(POST_IMAGE_SOURCE, image, systemConfig.getMaxPostImageSize(), true);
+        FileIdentity fileIdentity = fileService.uploadImage(QUESTION_IMAGE_SOURCE, image, systemConfig.getMaxQuestionImageSize(), true);
 
         if(fileIdentity != null) return fileService.getFileUrl(fileIdentity.getId());
         else return null;
     }
 
     @Override
-    public PostDto getPost(Long postId) {
+    public QuestionDto getQuestion(Long questionId) {
         //浏览量++
-        statisticsService.increasePostViewCount(postId);
-        //标记需要更新贴子热度分值
-        statisticsService.markPostToFreshScore(postId);
+        statisticsService.increaseQuestionViewCount(questionId);
+        //标记需要更新问题热度分值
+        statisticsService.markQuestionToFreshScore(questionId);
 
-        Question question = questionMapper.selectById(postId);
+        Question question = questionMapper.selectById(questionId);
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        return postDtoMap(question, currentUserId);
+        return questionDtoMap(question, currentUserId);
     }
 
     @Override
-    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, String authorUsername) {
+    public IPage<QuestionDto> listQuestion(PageQuery pageQuery, Long forumId, String authorUsername) {
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(forumId != null, Question::getForumId, forumId);
         if(authorUsername != null){
@@ -134,65 +134,66 @@ public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> imple
             queryWrapper.eq(Question::getAuthorId, authorId);
         }
 
-        IPage<Question> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
+        IPage<Question> questionPage = pageQuery.getIPage(columnsCanSorted, "score", false);
 
-        postPage = questionMapper.selectPage(postPage, queryWrapper);
+        questionPage = questionMapper.selectPage(questionPage, queryWrapper);
 
-        //to PostDto
-        List<Question> questions = postPage.getRecords();
-        List<PostDto> postDtos = new ArrayList<>(questions.size());
+        //to QuestionDto
+        List<Question> questions = questionPage.getRecords();
+        List<QuestionDto> questionDtos = new ArrayList<>(questions.size());
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
         for (Question question : questions) {
-            postDtos.add(postDtoMap(question, currentUserId));
+            questionDtos.add(questionDtoMap(question, currentUserId));
         }
 
-        return PageUtil.replaceRecords(postPage, postDtos);
+        return PageUtil.replaceRecords(questionPage, questionDtos);
     }
 
     @Override
-    public IPage<PostDto> searchPosts(PageQuery pageQuery, String text, Long forumId, Long authorId) {
-        IPage<Question> postPage = searchService.searchPosts(pageQuery, text, authorId, forumId);
-        List<Question> questions = postPage.getRecords();
-        if(questions.isEmpty()) return PageUtil.replaceRecords(postPage, Collections.emptyList());
+    public IPage<QuestionDto> searchQuestions(PageQuery pageQuery, String text, Long forumId, Long authorId) {
+        IPage<Question> questionPage = searchService.searchQuestions(pageQuery, text, authorId, forumId);
+        List<Question> questions = questionPage.getRecords();
+        if(questions.isEmpty()) return PageUtil.replaceRecords(questionPage, Collections.emptyList());
 
         //设置likeCount字段
-        List<Long> postIds = questions.stream().map(Question::getId).collect(Collectors.toList());
-        List<Long> likeCountBatch = questionMapper.selectLikeCountBatch(postIds);
-        for(int i = 0; i < postIds.size(); i++){
+        List<Long> questionIds = questions.stream().map(Question::getId).collect(Collectors.toList());
+        List<Long> likeCountBatch = questionMapper.selectLikeCountBatch(questionIds);
+        for(int i = 0; i < questionIds.size(); i++){
             questions.get(i).setLikeCount(likeCountBatch.get(i));
         }
 
-        //to PostDto
-        List<PostDto> postDtos = new ArrayList<>(questions.size());
+        //to QuestionDto
+        List<QuestionDto> questionDtos = new ArrayList<>(questions.size());
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
         for (Question question : questions) {
-            postDtos.add(postDtoMap(question, currentUserId));
+            questionDtos.add(questionDtoMap(question, currentUserId));
         }
 
-        return PageUtil.replaceRecords(postPage, postDtos);
+        return PageUtil.replaceRecords(questionPage, questionDtos);
     }
 
     @Override
-    public boolean removePost(Long postId) {
+    public boolean removeQuestion(Long questionId) {
         //删除所有附件
         //标记其引用的图片(附件)可以清理
-        List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfPost(postId);
+        List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfQuestion(questionId);
         if(!attachmentFileIds.isEmpty()){
             fileService.setTempFlags(attachmentFileIds, true);
         }
         //删除attachment记录
         Attachment attachmentQuery = new Attachment();
-        attachmentQuery.setPostId(postId);
+        attachmentQuery.setQuestionId(questionId);
         attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
 
         //删除所有评论
+        //TODO: 改为answer
         Comment commentQuery = new Comment();
-        commentQuery.setPostId(postId);
+        commentQuery.setQuestionId(questionId);
         commentMapper.delete(new QueryWrapper<>(commentQuery));
 
-        if(questionMapper.deleteById(postId) > 0){
+        if(questionMapper.deleteById(questionId) > 0){
             //发布删除事件，以同步至ElasticSearch
-            postMessageSender.sendPostDeleteMessage(postId);
+            questionMessageSender.sendQuestionDeleteMessage(questionId);
             return true;
         }
 
@@ -200,36 +201,36 @@ public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> imple
     }
 
     @Override
-    public boolean isAuthor(Long postId, Long userId) {
+    public boolean isAuthor(Long questionId, Long userId) {
         Question questionQuery = new Question();
-        questionQuery.setId(postId);
+        questionQuery.setId(questionId);
         questionQuery.setAuthorId(userId);
         return questionMapper.exists(new QueryWrapper<>(questionQuery));
     }
 
-    private PostDto postDtoMap(Question question, Long currentUserId){
+    private QuestionDto questionDtoMap(Question question, Long currentUserId){
         if(question == null) return null;
-        PostDto postDto = new PostDto();
-        BeanUtils.copyProperties(question, postDto);
+        QuestionDto questionDto = new QuestionDto();
+        BeanUtils.copyProperties(question, questionDto);
 
         //作者用户信息
         User user = userService.getUser(question.getAuthorId());
         UserDto userDto = new UserDto();
         BeanUtils.copyProperties(user, userDto);
-        postDto.setAuthor(userDto);
+        questionDto.setAuthor(userDto);
 
         //板块名称
         Forum forum = forumService.getById(question.getForumId());
-        postDto.setForumName(forum.getName());
+        questionDto.setForumName(forum.getName());
 
         //当前用户是否已点赞
-        postDto.setLiked(likeService.hasLikedPost(question.getId(), currentUserId));
+        questionDto.setLiked(likeService.hasLikedQuestion(question.getId(), currentUserId));
 
         //查询Redis缓存的最新的点赞数量
-        Long likeCount = likeService.getPostLikeCountFromCache(question.getId());
+        Long likeCount = likeService.getQuestionLikeCountFromCache(question.getId());
         if(likeCount != null){
-            postDto.setLikeCount(likeCount);
+            questionDto.setLikeCount(likeCount);
         }
-        return postDto;
+        return questionDto;
     }
 }

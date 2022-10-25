@@ -12,9 +12,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "sys")
 public class SystemConfig {
     /**
-     * 论坛名称
+     * 网站名称
      */
-    private String bbsName;
+    private String systemName;
 
     /**
      * token有时间 (ms)
@@ -37,14 +37,14 @@ public class SystemConfig {
     private Long maxAvatarSize;
 
     /**
-     * 贴子中图片最大size (byte)
+     * 问题中图片最大size (byte)
      */
-    private Long maxPostImageSize;
+    private Long maxQuestionImageSize;
 
     /**
-     * 贴子中图片最大数量
+     * 问题中图片最大数量
      */
-    private Long maxPostImageNum;
+    private Long maxQuestionImageNum;
 
     /**
      * 评论中图片最大数量

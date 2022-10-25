@@ -52,30 +52,30 @@ public class TestElasticSearch {
     private SearchService searchService;
 
     @Test
-    public void testSyncAllPost(){
-        searchService.syncAllPosts();
+    public void testSyncAllQuestion(){
+        searchService.syncAllQuestions();
     }
 
     @Test
-    public void testDeletePostDoc(){
-        searchService.removePost(1L);
+    public void testDeleteQuestionDoc(){
+        searchService.removeQuestion(1L);
     }
 
     @Test
-    public void testUpdatePostDoc(){
+    public void testUpdateQuestionDoc(){
         Question question = new Question();
         question.setId(1L);
-//        post.setContent("<p>Hello, wowowow<p/>");
-//        post.setForumId(123L);
-//        post.setAuthorId(222L);
+//        question.setContent("<p>Hello, wowowow<p/>");
+//        question.setForumId(123L);
+//        question.setAuthorId(222L);
         question.setTitle("He2222222llo nonono");
-//        post.setUpdateTime(LocalDateTime.now());
-        searchService.updatePost(question);
+//        question.setUpdateTime(LocalDateTime.now());
+        searchService.updateQuestion(question);
     }
 
     @Test
     public void testSearch(){
-        SearchRequest request = new SearchRequest("post");
+        SearchRequest request = new SearchRequest("question");
 
         //定义查询语句(DSL)
         MatchAllQueryBuilder matchAllQueryBuilder = QueryBuilders.matchAllQuery();

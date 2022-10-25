@@ -15,7 +15,7 @@ public class TestController {
 
     @GetMapping("/sync-like-count")
     public Result<Void> syncLikeCount(){
-        likeService.syncPostLikeCount();
+        likeService.syncQuestionLikeCount();
         return Result.succeed();
     }
 }

@@ -8,9 +8,9 @@ import java.util.List;
 
 @Mapper
 public interface AttachmentMapper extends BaseMapper<Attachment> {
-    int insertAttachments(Long postId, Long commentId, List<Long> fileIds);
+    int insertAttachments(Long questionId, Long commentId, List<Long> fileIds);
 
-    List<Long> selectAttachmentFileIdsOfComment(Long postId, Long commentId);
+    List<Long> selectAttachmentFileIdsOfComment(Long questionId, Long commentId);
 
-    List<Long> selectAttachmentFileIdsOfPost(Long postId);
+    List<Long> selectAttachmentFileIdsOfQuestion(Long questionId);
 }

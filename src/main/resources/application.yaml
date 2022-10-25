@@ -4,15 +4,15 @@ server:
 spring:
   #  配置数据源
   datasource:
-    username:
-    password:
-    url:
+    username: root
+    password: lty0712
+    url: jdbc:mysql://114.116.245.83:3306/my-stackoverflow?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis
   redis:
-    host:
-    password:
+    host: 114.116.245.83
+    password: lty0712
     database: 0
 
   # 文件上传大小限制
@@ -25,7 +25,7 @@ spring:
 
   # Kafka
   kafka:
-    bootstrap-servers:
+    bootstrap-servers: 114.116.245.83:9092
     # producer 生产者配置
     producer:
       retries: 0  # 重试次数
@@ -59,14 +59,14 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
-# 论坛系统设置
+# 服务系统设置
 sys:
   token-valid-time: 3600
   remember-me-token-valid-time: 604800   #7天
   default-role-id: 1
   max-avatar-size: 1024000               #1000KiB
-  max-post-image-size: 2097152           #2MiB
-  max-post-image-num: 20
+  max-question-image-size: 2097152           #2MiB
+  max-question-image-num: 20
   max-comment-image-num: 10
   max-logo-image-size: 2097152           #2MiB
   min-temp-file-life: 86400              #1天
@@ -74,17 +74,17 @@ sys:
 
   # 阿里云OOS配置
   aliOSS:
-    endpoint:
-    accessKeyId:
-    accessKeySecret:
-    bucket-name:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    accessKeyId: LTAI5tPWJhgitqKfhuPWrEfS
+    accessKeySecret: siBZmvrbPidl5nudvMqSZOZNOBdibS
+    bucket-name: qiao712-my-bbs
 
   # ElasticSearch地址
   elastic-search:
     hosts:
-      -
-    username:
-    password:
+      - 121.36.85.97:9200
+    username: elastic
+    password: haihaihai
 
   # 该进程标识，用于支持聊天服务的水平拓展。消息根据该id路由到目标用户所在的节点。
   # 以该值作为消息队列路由的标识

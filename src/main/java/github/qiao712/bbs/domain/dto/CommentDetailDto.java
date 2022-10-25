@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CommentDetailDto extends Comment {
-    private String postTitle;
+    private String questionTitle;
     private Long forumId;
     private String forum;
     private String authorUsername;

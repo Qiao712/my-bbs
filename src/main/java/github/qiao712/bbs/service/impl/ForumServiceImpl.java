@@ -30,7 +30,7 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
     @Autowired
     private FileService fileService;
 
-    //论坛logo文件source标识
+    //服务logo文件source标识
     private final static String FORUM_LOGO_SOURCE = "forum-logo";
 
     @Override

@@ -9,32 +9,32 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Post相关事件消息的监听器
+ * Question相关事件消息的监听器
  */
 @Component
-public class PostMessageListener {
+public class QuestionMessageListener {
     @Autowired
     private SearchService searchService;
 
-    @KafkaListener(topics = {MQConfig.POST_TOPIC})
+    @KafkaListener(topics = {MQConfig.QUESTION_TOPIC})
     public void onMessage(ConsumerRecord<String, String> consumerRecord){
-        PostMessage postMessage = JSON.parseObject(consumerRecord.value(), PostMessage.class);
+        QuestionMessage questionMessage = JSON.parseObject(consumerRecord.value(), QuestionMessage.class);
 
-        switch (postMessage.getPostMessageType()){
+        switch (questionMessage.getQuestionMessageType()){
             case CREATE: {
-                //贴子添加, 同步至ElasticSearch
-                searchService.savePost(postMessage.getQuestion());
+                //问题添加, 同步至ElasticSearch
+                searchService.saveQuestion(questionMessage.getQuestion());
                 break;
             }
 
             case UPDATE:{
-                //贴子更新, 同步至ElasticSearch
-                searchService.updatePost(postMessage.getQuestion());
+                //问题更新, 同步至ElasticSearch
+                searchService.updateQuestion(questionMessage.getQuestion());
             }
 
             case DELETE:{
-                //贴子删除
-                searchService.removePost(postMessage.getPostId());
+                //问题删除
+                searchService.removeQuestion(questionMessage.getQuestionId());
             }
         }
     }

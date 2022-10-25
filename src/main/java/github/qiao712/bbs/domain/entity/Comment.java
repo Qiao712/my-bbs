@@ -33,9 +33,9 @@ public class Comment extends BaseEntity {
     @ApiModelProperty("被回复的评论")
     private Long repliedId;
 
-    @ApiModelProperty("所属贴子id")
-    @NotNull(groups = {AddGroup.class, UpdateGroup.class}, message = "必须指定所回复贴子")
-    private Long postId;
+    @ApiModelProperty("所属问题id")
+    @NotNull(groups = {AddGroup.class, UpdateGroup.class}, message = "必须指定所回复问题")
+    private Long questionId;
 
     @ApiModelProperty("点赞数")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定点赞数量")

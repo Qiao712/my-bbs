@@ -6,37 +6,37 @@ import github.qiao712.bbs.domain.entity.Question;
 
 public interface SearchService {
     /**
-     * 将贴子存入索引库
+     * 将问题存入索引库
      */
-    void savePost(Question question);
+    void saveQuestion(Question question);
 
     /**
-     * 将贴子从索引库中删除
+     * 将问题从索引库中删除
      */
-    void removePost(Long postId);
+    void removeQuestion(Long questionId);
 
     /**
-     * 修改贴子
+     * 修改问题
      */
-    void updatePost(Question question);
+    void updateQuestion(Question question);
 
     /**
-     * 获取贴子文档
+     * 获取问题文档
      * 无likeCount字段; 内容为去除Html样式的内容
      */
-    Question getPostDoc(Long postId);
+    Question getQuestionDoc(Long questionId);
 
     /**
-     * 搜索贴子
+     * 搜索问题
      * @param text 搜索内容
      * @param authorId 指定作者
      * @param forumId 指定板块
-     * @return Post对象，未设置likeCount字段
+     * @return Question对象，未设置likeCount字段
      */
-    IPage<Question> searchPosts(PageQuery pageQuery, String text, Long authorId, Long forumId);
+    IPage<Question> searchQuestions(PageQuery pageQuery, String text, Long authorId, Long forumId);
 
     /**
-     * 将数据库中所有贴子同步到索引库
+     * 将数据库中所有问题同步到索引库
      */
-    void syncAllPosts();
+    void syncAllQuestions();
 }

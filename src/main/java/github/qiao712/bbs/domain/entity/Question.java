@@ -55,7 +55,7 @@ public class Question extends BaseEntity {
     private Long answerCount;
 
     @ApiModelProperty("热度分值")
-    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定贴子热度分值")
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定问题热度分值")
     private Long score;
 
     @ApiModelProperty("最后回答时间")

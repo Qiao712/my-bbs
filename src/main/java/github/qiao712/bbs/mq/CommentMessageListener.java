@@ -48,14 +48,14 @@ public class CommentMessageListener {
         messageContent.setComment(comment.getContent());
         messageContent.setAuthorId(comment.getAuthorId());
         messageContent.setAuthorUsername(userService.getUsername(comment.getAuthorId()));
-        messageContent.setPostId(comment.getPostId());
+        messageContent.setQuestionId(comment.getQuestionId());
 
-        //设置贴子标题
+        //设置问题标题
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Question::getId, comment.getPostId());
+        queryWrapper.eq(Question::getId, comment.getQuestionId());
         queryWrapper.select(Question::getTitle, Question::getAuthorId);
         Question question = questionMapper.selectOne(queryWrapper);
-        messageContent.setPostTitle(question.getTitle());
+        messageContent.setQuestionTitle(question.getTitle());
 
         //消息接收者
         Long receiverId = null;
@@ -67,7 +67,7 @@ public class CommentMessageListener {
             Comment repliedComment = commentMapper.selectOne(commentQueryWrapper);
             receiverId = repliedComment.getAuthorId();
         }else{
-            //接收者为贴子作者
+            //接收者为问题作者
             receiverId = question.getAuthorId();
         }
 

@@ -1,17 +1,16 @@
 package github.qiao712.bbs.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import github.qiao712.bbs.domain.AddGroup;
-import github.qiao712.bbs.domain.UpdateGroup;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.entity.Forum;
 import github.qiao712.bbs.service.ForumService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 

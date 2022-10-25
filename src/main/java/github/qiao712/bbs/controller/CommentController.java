@@ -11,13 +11,9 @@ import github.qiao712.bbs.domain.entity.Comment;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.service.CommentService;
 import github.qiao712.bbs.service.LikeService;
-import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,8 +33,8 @@ public class CommentController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('comment:list')")
-    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long postId, Long parentCommentId){
-        return Result.succeed(commentService.listComments(pageQuery, postId, parentCommentId));
+    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long questionId, Long parentCommentId){
+        return Result.succeed(commentService.listComments(pageQuery, questionId, parentCommentId));
     }
 
     @GetMapping("/my")

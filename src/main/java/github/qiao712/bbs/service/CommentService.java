@@ -14,15 +14,15 @@ public interface CommentService extends IService<Comment> {
     boolean addComment(Comment comment);
 
     /**
-     * 查询贴子的评论
-     * 若parentCommentId != null，则查询该贴子下的一级评论
+     * 查询问题的评论
+     * 若parentCommentId != null，则查询该问题下的一级评论
      * 若parentCommentId == null，则查询该评论下的二级评论
      */
-    IPage<CommentDto> listComments(PageQuery pageQuery, Long postId, Long parentCommentId);
+    IPage<CommentDto> listComments(PageQuery pageQuery, Long questionId, Long parentCommentId);
 
     /**
      * 根据作者用户名获取评论
-     * @return CommentDetailDto 附加贴子标题，板块，被回复者名
+     * @return CommentDetailDto 附加问题标题，板块，被回复者名
      */
     IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, String authorUsername);
 

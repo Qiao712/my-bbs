@@ -2,13 +2,13 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="github.qiao712.bbs.mapper.CommentMapper">
     <resultMap id="commentDetailDtoMap" type="github.qiao712.bbs.domain.dto.CommentDetailDto">
-        <id property="postId" column="post_id"/>
+        <id property="questionId" column="question_id"/>
         <id property="repliedId" column="replied_id"/>
         <id property="authorId" column="author_id"/>
         <association property="repliedUserName" column="replied_id" select="selectRepliedUserName"/>
-        <association property="forumId" column="post_id" select="selectForumId"/>
-        <association property="forum" column="post_id" select="selectForumName"/>
-        <association property="postTitle" column="post_id" select="selectPostTitle"/>
+        <association property="forumId" column="question_id" select="selectForumId"/>
+        <association property="forum" column="question_id" select="selectForumName"/>
+        <association property="questionTitle" column="question_id" select="selectPostTitle"/>
         <association property="authorUsername" column="author_id" select="selectAuthorUsername"/>
     </resultMap>
 
@@ -27,20 +27,20 @@
         WHERE c1.id = #{commentId} AND c1.replied_id = c2.id AND c2.author_id = u.id
     </select>
 
-    <!--获取或评论所在贴子的title-->
+    <!--获取或评论所在问题的title-->
     <select id="selectPostTitle" resultType="String">
-        SELECT title FROM t_post WHERE id = #{postId}
+        SELECT title FROM t_question WHERE id = #{questionId}
     </select>
 
     <!--获取评论所在板块的id-->
     <select id="selectForumId" resultType="Long">
-        SELECT forum_id FROM t_post WHERE id = #{postId}
+        SELECT forum_id FROM t_question WHERE id = #{questionId}
     </select>
 
     <!--获取评论所在板块的名称-->
     <select id="selectForumName" resultType="String">
-        SELECT f.name FROM t_post as p, t_forum as f
-        WHERE p.id = #{postId} AND p.forum_id = f.id
+        SELECT f.name FROM t_question as p, t_forum as f
+        WHERE p.id = #{questionId} AND p.forum_id = f.id
     </select>
 
     <!--获取作者用户名-->

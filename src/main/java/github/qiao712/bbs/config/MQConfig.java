@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class MQConfig {
-    public static final String POST_TOPIC = "post";
+    public static final String QUESTION_TOPIC = "question";
     public static final String COMMENT_TOPIC = "comment";
 
     public final static int numPartitions = 3;
@@ -16,8 +16,8 @@ public class MQConfig {
      * 创建Topic
      */
     @Bean
-    public NewTopic postTopic(){
-        return new NewTopic(POST_TOPIC, numPartitions, (short) replicationFactor);
+    public NewTopic questionTopic(){
+        return new NewTopic(QUESTION_TOPIC, numPartitions, (short) replicationFactor);
     }
 
     @Bean

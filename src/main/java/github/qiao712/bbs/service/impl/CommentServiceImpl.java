@@ -55,15 +55,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setAuthorId(currentUser.getId());
 
         QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", comment.getPostId());
+        queryWrapper.eq("id", comment.getQuestionId());
         if(!questionMapper.exists(queryWrapper)){
-            throw new ServiceException("贴子不存在");
+            throw new ServiceException("问题不存在");
         }
 
         //若该评论回复一个一级评论
         if(comment.getRepliedId() != null){
             Comment repliedComment = commentMapper.selectById(comment.getRepliedId());
-            if(repliedComment == null || !repliedComment.getPostId().equals(comment.getPostId())){
+            if(repliedComment == null || !repliedComment.getQuestionId().equals(comment.getQuestionId())){
                 throw new ServiceException("被回复的评论不存在");
             }
 
@@ -95,33 +95,33 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
                 if(imageFileIdentity == null) continue;  //为外部连接
 
                 if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())
-                    && PostServiceImpl.POST_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
+                    && QuestionServiceImpl.QUESTION_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
                     imageFileIds.add(imageFileIdentity.getId());
                 }
             }
             if(!imageFileIds.isEmpty()){
-                attachmentMapper.insertAttachments(comment.getPostId(), comment.getId(), imageFileIds);
+                attachmentMapper.insertAttachments(comment.getQuestionId(), comment.getId(), imageFileIds);
                 //将引用的图片文件标记为非临时文件，不再进行清理
                 fileService.setTempFlags(imageFileIds, false);
             }
         }
 
-        //贴子评论数+1
-        questionMapper.increaseCommentCount(comment.getPostId(), 1L);
+        //问题评论数+1
+        questionMapper.increaseAnswerCount(comment.getQuestionId(), 1L);
 
         //发送评论/回复消息
         commentMessageSender.sendCommentAddMessage(comment);
 
-        //标记贴子需要刷新热度值
-        statisticsService.markPostToFreshScore(comment.getPostId());
+        //标记问题需要刷新热度值
+        statisticsService.markQuestionToFreshScore(comment.getQuestionId());
 
         return flag;
     }
 
     @Override
-    public IPage<CommentDto> listComments(PageQuery pageQuery, Long postId, Long parentCommentId) {
+    public IPage<CommentDto> listComments(PageQuery pageQuery, Long questionId, Long parentCommentId) {
         QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("post_id", postId);
+        queryWrapper.eq("question_id", questionId);
         queryWrapper.orderByAsc("create_time");
         if(parentCommentId != null){
             //查询父评论id为parentCommentId的所有评论
@@ -201,13 +201,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             deletedCommentCount += commentMapper.delete(new QueryWrapper<>(commentQuery));
 
             //标记其引用的图片(附件)可以清理
-            List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getPostId(), comment.getId());
+            List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getQuestionId(), comment.getId());
             if(!attachmentFileIds.isEmpty())
                 fileService.setTempFlags(attachmentFileIds, true);
 
             //删除attachment记录
             Attachment attachmentQuery = new Attachment();
-            attachmentQuery.setPostId(comment.getPostId());
+            attachmentQuery.setQuestionId(comment.getQuestionId());
             attachmentQuery.setCommentId(comment.getId());
             attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
         }else{
@@ -219,10 +219,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         //更新评论数量
-        questionMapper.increaseCommentCount(comment.getPostId(), -deletedCommentCount - 1);
+        questionMapper.increaseAnswerCount(comment.getQuestionId(), -deletedCommentCount - 1);
 
-        //标记贴子需要刷新热度值
-        statisticsService.markPostToFreshScore(comment.getPostId());
+        //标记问题需要刷新热度值
+        statisticsService.markQuestionToFreshScore(comment.getQuestionId());
 
         return commentMapper.deleteById(commentId) > 0;
     }

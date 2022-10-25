@@ -1,6 +1,5 @@
 package github.qiao712.bbs.controller;
 
-import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.CredentialDto;
 import github.qiao712.bbs.service.AuthenticationService;

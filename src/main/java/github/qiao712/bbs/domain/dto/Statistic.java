@@ -7,7 +7,7 @@ import lombok.Data;
  */
 @Data
 public class Statistic {
-    private long postCount;     //贴子总量
+    private long questionCount;     //问题总量
     private long commentCount;  //评论总量
     private long userCount;     //用户总量
 }

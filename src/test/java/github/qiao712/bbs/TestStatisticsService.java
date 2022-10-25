@@ -18,23 +18,23 @@ public class TestStatisticsService {
     private QuestionMapper questionMapper;
 
     @Test
-    public void testSyncPostViewCount(){
-        statisticsService.syncPostViewCount();
+    public void testSyncQuestionViewCount(){
+        statisticsService.syncQuestionViewCount();
     }
 
     @Test
-    public void testListPostViewCounts(){
+    public void testListQuestionViewCounts(){
         List<Question> questions = questionMapper.selectList(null);
-        List<Long> postIds = questions.stream().map(Question::getId).collect(Collectors.toList());
-        List<Long> counts = statisticsService.listPostViewCounts(postIds);
+        List<Long> questionIds = questions.stream().map(Question::getId).collect(Collectors.toList());
+        List<Long> counts = statisticsService.listQuestionViewCounts(questionIds);
         for (Long count : counts) {
             System.out.println(count);
         }
     }
 
     @Test
-    public void testRefreshPostScores(){
-        statisticsService.refreshPostScores();
+    public void testRefreshQuestionScores(){
+        statisticsService.refreshQuestionScores();
     }
 
 

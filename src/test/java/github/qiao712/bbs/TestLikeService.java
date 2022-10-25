@@ -35,8 +35,8 @@ public class TestLikeService {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    private final static String POST_LIKE_COUNT_TABLE = "post-like-counts";
-    private final static String POST_LIKE_RECORD_TABLE = "post-like-records";
+    private final static String QUESTION_LIKE_COUNT_TABLE = "question-like-counts";
+    private final static String QUESTION_LIKE_RECORD_TABLE = "question-like-records";
     private final static String COMMENT_LIKE_COUNT_TABLE = "comment-like-counts";
     private final static String COMMENT_LIKE_RECORD_TABLE = "comment-like-records";
     private final static String LIKED = "1";
@@ -49,8 +49,8 @@ public class TestLikeService {
     @Test
     public void clearAllLike(){
         for(int i = 0; i < 100; i++){
-            redisTemplate.delete(POST_LIKE_COUNT_TABLE + "-" + i);
-            redisTemplate.delete(POST_LIKE_RECORD_TABLE + "-" + i);
+            redisTemplate.delete(QUESTION_LIKE_COUNT_TABLE + "-" + i);
+            redisTemplate.delete(QUESTION_LIKE_RECORD_TABLE + "-" + i);
             redisTemplate.delete(COMMENT_LIKE_COUNT_TABLE + "-" + i);
             redisTemplate.delete(COMMENT_LIKE_RECORD_TABLE + "-" + i);
         }
@@ -60,15 +60,15 @@ public class TestLikeService {
         commentMapper.update(null, commentUpdate);
         answerLikeMapper.delete(null);
 
-        LambdaUpdateWrapper<Question> postUpdate = new LambdaUpdateWrapper<>();
-        postUpdate.set(Question::getLikeCount, 0);
-        questionMapper.update(null, postUpdate);
+        LambdaUpdateWrapper<Question> questionUpdate = new LambdaUpdateWrapper<>();
+        questionUpdate.set(Question::getLikeCount, 0);
+        questionMapper.update(null, questionUpdate);
         questionLikeMapper.delete(null);
     }
 
     @Test
     public void testSync2DB(){
-        likeService.syncPostLikeCount();
+        likeService.syncQuestionLikeCount();
     }
 
     @Test

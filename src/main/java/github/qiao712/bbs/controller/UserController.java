@@ -1,8 +1,6 @@
 package github.qiao712.bbs.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import github.qiao712.bbs.domain.AddGroup;
-import github.qiao712.bbs.domain.UpdateGroup;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
@@ -12,12 +10,8 @@ import github.qiao712.bbs.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
