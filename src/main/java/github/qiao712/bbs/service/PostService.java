@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.PostDto;
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import org.springframework.web.multipart.MultipartFile;
 
-public interface PostService extends IService<Post> {
+public interface PostService extends IService<Question> {
 
-    boolean addPost(Post post);
+    boolean addPost(Question question);
 
     /**
      * 上传贴子中插入的图片

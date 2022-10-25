@@ -13,7 +13,7 @@ import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.mq.PostMessageSender;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
@@ -31,9 +31,9 @@ import java.util.stream.Collectors;
 
 @Service("postService")
 @Transactional
-public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
+public class PostServiceImpl extends ServiceImpl<QuestionMapper, Question> implements PostService {
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
     @Autowired
     private UserService userService;
     @Autowired
@@ -63,20 +63,20 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     @Transactional
-    public boolean addPost(Post post) {
+    public boolean addPost(Question question) {
         //设置作者id
         AuthUser currentUser = SecurityUtil.getCurrentUser();
-        post.setAuthorId(currentUser.getId());
+        question.setAuthorId(currentUser.getId());
 
         //初始化贴子热度分数
-        post.setScore(statisticsService.computePostScore(0, 0, 0, LocalDateTime.now()));
+        question.setScore(statisticsService.computePostScore(0, 0, 0, LocalDateTime.now()));
 
-        if(postMapper.insert(post) == 0){
+        if(questionMapper.insert(question) == 0){
             return false;
         }
 
         //解析出引用的图片
-        List<String> urls = HtmlUtil.getImageUrls(post.getContent());
+        List<String> urls = HtmlUtil.getImageUrls(question.getContent());
         if(urls.size() > systemConfig.getMaxPostImageNum()){
             throw new ServiceException("图片数量超出限制");
         }
@@ -92,14 +92,14 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             }
         }
         if(!imageFileIds.isEmpty()){
-            attachmentMapper.insertAttachments(post.getId(), null, imageFileIds);
+            attachmentMapper.insertAttachments(question.getId(), null, imageFileIds);
 
             //将引用的图片文件标记为非临时文件，不再进行清理
             fileService.setTempFlags(imageFileIds, false);
         }
 
         //发布添加事件，以同步至ElasticSearch
-        postMessageSender.sendPostAddMessage(post);
+        postMessageSender.sendPostAddMessage(question);
         return true;
     }
 
@@ -120,30 +120,30 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //标记需要更新贴子热度分值
         statisticsService.markPostToFreshScore(postId);
 
-        Post post = postMapper.selectById(postId);
+        Question question = questionMapper.selectById(postId);
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        return postDtoMap(post, currentUserId);
+        return postDtoMap(question, currentUserId);
     }
 
     @Override
     public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, String authorUsername) {
-        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(forumId != null, Post::getForumId, forumId);
+        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(forumId != null, Question::getForumId, forumId);
         if(authorUsername != null){
             Long authorId = userService.getUserIdByUsername(authorUsername);
-            queryWrapper.eq(Post::getAuthorId, authorId);
+            queryWrapper.eq(Question::getAuthorId, authorId);
         }
 
-        IPage<Post> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
+        IPage<Question> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
 
-        postPage = postMapper.selectPage(postPage, queryWrapper);
+        postPage = questionMapper.selectPage(postPage, queryWrapper);
 
         //to PostDto
-        List<Post> posts = postPage.getRecords();
-        List<PostDto> postDtos = new ArrayList<>(posts.size());
+        List<Question> questions = postPage.getRecords();
+        List<PostDto> postDtos = new ArrayList<>(questions.size());
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        for (Post post : posts) {
-            postDtos.add(postDtoMap(post, currentUserId));
+        for (Question question : questions) {
+            postDtos.add(postDtoMap(question, currentUserId));
         }
 
         return PageUtil.replaceRecords(postPage, postDtos);
@@ -151,22 +151,22 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public IPage<PostDto> searchPosts(PageQuery pageQuery, String text, Long forumId, Long authorId) {
-        IPage<Post> postPage = searchService.searchPosts(pageQuery, text, authorId, forumId);
-        List<Post> posts = postPage.getRecords();
-        if(posts.isEmpty()) return PageUtil.replaceRecords(postPage, Collections.emptyList());
+        IPage<Question> postPage = searchService.searchPosts(pageQuery, text, authorId, forumId);
+        List<Question> questions = postPage.getRecords();
+        if(questions.isEmpty()) return PageUtil.replaceRecords(postPage, Collections.emptyList());
 
         //设置likeCount字段
-        List<Long> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
-        List<Long> likeCountBatch = postMapper.selectLikeCountBatch(postIds);
+        List<Long> postIds = questions.stream().map(Question::getId).collect(Collectors.toList());
+        List<Long> likeCountBatch = questionMapper.selectLikeCountBatch(postIds);
         for(int i = 0; i < postIds.size(); i++){
-            posts.get(i).setLikeCount(likeCountBatch.get(i));
+            questions.get(i).setLikeCount(likeCountBatch.get(i));
         }
 
         //to PostDto
-        List<PostDto> postDtos = new ArrayList<>(posts.size());
+        List<PostDto> postDtos = new ArrayList<>(questions.size());
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        for (Post post : posts) {
-            postDtos.add(postDtoMap(post, currentUserId));
+        for (Question question : questions) {
+            postDtos.add(postDtoMap(question, currentUserId));
         }
 
         return PageUtil.replaceRecords(postPage, postDtos);
@@ -190,7 +190,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         commentQuery.setPostId(postId);
         commentMapper.delete(new QueryWrapper<>(commentQuery));
 
-        if(postMapper.deleteById(postId) > 0){
+        if(questionMapper.deleteById(postId) > 0){
             //发布删除事件，以同步至ElasticSearch
             postMessageSender.sendPostDeleteMessage(postId);
             return true;
@@ -201,32 +201,32 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public boolean isAuthor(Long postId, Long userId) {
-        Post postQuery = new Post();
-        postQuery.setId(postId);
-        postQuery.setAuthorId(userId);
-        return postMapper.exists(new QueryWrapper<>(postQuery));
+        Question questionQuery = new Question();
+        questionQuery.setId(postId);
+        questionQuery.setAuthorId(userId);
+        return questionMapper.exists(new QueryWrapper<>(questionQuery));
     }
 
-    private PostDto postDtoMap(Post post, Long currentUserId){
-        if(post == null) return null;
+    private PostDto postDtoMap(Question question, Long currentUserId){
+        if(question == null) return null;
         PostDto postDto = new PostDto();
-        BeanUtils.copyProperties(post, postDto);
+        BeanUtils.copyProperties(question, postDto);
 
         //作者用户信息
-        User user = userService.getUser(post.getAuthorId());
+        User user = userService.getUser(question.getAuthorId());
         UserDto userDto = new UserDto();
         BeanUtils.copyProperties(user, userDto);
         postDto.setAuthor(userDto);
 
         //板块名称
-        Forum forum = forumService.getById(post.getForumId());
+        Forum forum = forumService.getById(question.getForumId());
         postDto.setForumName(forum.getName());
 
         //当前用户是否已点赞
-        postDto.setLiked(likeService.hasLikedPost(post.getId(), currentUserId));
+        postDto.setLiked(likeService.hasLikedPost(question.getId(), currentUserId));
 
         //查询Redis缓存的最新的点赞数量
-        Long likeCount = likeService.getPostLikeCountFromCache(post.getId());
+        Long likeCount = likeService.getPostLikeCountFromCache(question.getId());
         if(likeCount != null){
             postDto.setLikeCount(likeCount);
         }

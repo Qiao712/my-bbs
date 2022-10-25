@@ -1,13 +1,12 @@
 package github.qiao712.bbs.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.domain.entity.PostLike;
+import github.qiao712.bbs.domain.entity.QuestionLike;
 import github.qiao712.bbs.exception.ServiceException;
-import github.qiao712.bbs.mapper.CommentLikeMapper;
+import github.qiao712.bbs.mapper.AnswerLikeMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostLikeMapper;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionLikeMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
 import github.qiao712.bbs.util.SecurityUtil;
@@ -21,23 +20,17 @@ import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Service
 @Slf4j
-public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> implements LikeService {
+public class LikeServiceImpl extends ServiceImpl<QuestionLikeMapper, QuestionLike> implements LikeService {
     @Autowired
-    private PostLikeMapper postLikeMapper;
+    private QuestionLikeMapper questionLikeMapper;
     @Autowired
-    private PostMapper postMapper;
-    @Autowired
-    private CommentLikeMapper commentLikeMapper;
-    @Autowired
-    private CommentMapper commentMapper;
+    private QuestionMapper questionMapper;
     @Autowired
     private StatisticsService statisticsService;
 
@@ -65,7 +58,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     public void likePost(Long postId, boolean like) {
         Long userId = SecurityUtil.getCurrentUser().getId();
 
-        if(!Boolean.TRUE.equals(postMapper.existsById(postId))){
+        if(!Boolean.TRUE.equals(questionMapper.existsById(postId))){
             throw new ServiceException("贴子不存在");
         }
 
@@ -79,7 +72,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         //判断是否已点赞
         String likeStatus = (String) hashOps.get(postLikeRecordTable, likeRecordKey);
-        boolean liked = likeStatus != null ? LIKED.equals(likeStatus) : postLikeMapper.isPostLikedByUser(postId, userId);
+        boolean liked = likeStatus != null ? LIKED.equals(likeStatus) : questionLikeMapper.isQuestionLikedByUser(postId, userId);
         if(liked && like){
             throw new ServiceException("不可重复点赞");
         }
@@ -89,7 +82,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         //检查缓存，若不存在则缓存
         if(! Boolean.TRUE.equals(hashOps.hasKey(postLikeCountTable, postIdKey))){
-            Long likeCount = postMapper.selectLikeCount(postId);
+            Long likeCount = questionMapper.selectLikeCount(postId);
             hashOps.putIfAbsent(postLikeCountTable, postIdKey, likeCount.toString()); //使用If Absent 防止多次设置缓存覆盖 已经+1的正确缓存
         }
 
@@ -108,7 +101,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         //优先比较缓存中的新值
         String likeStatus = (String) redisTemplate.opsForHash().get(postLikeRecordTable, likeRecordKey);
-        return likeStatus != null ? LIKED.equals(likeStatus) : postLikeMapper.isPostLikedByUser(postId, userId);
+        return likeStatus != null ? LIKED.equals(likeStatus) : questionLikeMapper.isQuestionLikedByUser(postId, userId);
     }
 
     @Override
@@ -165,29 +158,29 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
             //同步至点赞数量数据库
             postLikeCounts.forEach((key, value)->{
-                postMapper.updateLikeCount(Long.parseLong(key), Long.parseLong(value));
+                questionMapper.updateLikeCount(Long.parseLong(key), Long.parseLong(value));
             });
 
             //同步用户点赞记录至数据库
-            List<PostLike> postLikesToInsert = new ArrayList<>();
-            List<PostLike> postLikesToDelete = new ArrayList<>();
+            List<QuestionLike> questionLikesToInsert = new ArrayList<>();
+            List<QuestionLike> questionLikesToDelete = new ArrayList<>();
             postLikeRecords.forEach((key, value)->{
                 String[] split = key.split(":");
-                PostLike postLike = new PostLike();
-                postLike.setUserId(Long.parseLong(split[0]));
-                postLike.setPostId(Long.parseLong(split[1]));
+                QuestionLike questionLike = new QuestionLike();
+                questionLike.setUserId(Long.parseLong(split[0]));
+                questionLike.setQuestionId(Long.parseLong(split[1]));
 
                 if(LIKED.equals(value)){
-                    postLikesToInsert.add(postLike);
+                    questionLikesToInsert.add(questionLike);
                 }else if(UNLIKED.equals(value)){
-                    postLikesToDelete.add(postLike);
+                    questionLikesToDelete.add(questionLike);
                 }
             });
-            if(!postLikesToInsert.isEmpty()){
-                postLikeMapper.insertPostLikes(postLikesToInsert);
+            if(!questionLikesToInsert.isEmpty()){
+                questionLikeMapper.insertQuestionLikes(questionLikesToInsert);
             }
-            if(!postLikesToDelete.isEmpty()){
-                postLikeMapper.deletePostLikes(postLikesToDelete);
+            if(!questionLikesToDelete.isEmpty()){
+                questionLikeMapper.deleteQuestionLikes(questionLikesToDelete);
             }
         }
 

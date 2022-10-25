@@ -1,9 +1,9 @@
 package github.qiao712.bbs.service;
 
-import github.qiao712.bbs.domain.entity.PostLike;
+import github.qiao712.bbs.domain.entity.QuestionLike;
 import com.baomidou.mybatisplus.extension.service.IService;
 
-public interface LikeService extends IService<PostLike> {
+public interface LikeService extends IService<QuestionLike> {
     /**
      * 贴子点赞/取消点赞
      * @param like true:点赞; false: 取消点赞

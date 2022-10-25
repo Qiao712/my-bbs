@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="github.qiao712.bbs.mapper.QuestionLikeMapper">
+    <select id="isQuestionLikedByUser" resultType="boolean">
+        SELECT (
+            EXISTS (SELECT * FROM t_question_like WHERE user_id = #{userId} AND question_id = #{questionId})
+        ) liked
+    </select>
+
+    <insert id="insertQuestionLikes">
+        INSERT IGNORE INTO t_question_like(question_id, user_id) VALUES
+        <foreach collection="questionLikes" separator="," item="questionLike">
+            (#{questionLike.questionId}, #{questionLike.userId})
+        </foreach>
+    </insert>
+
+    <delete id="deleteQuestionLikes">
+        DELETE FROM t_question_like WHERE (question_id, user_id) IN
+        <foreach collection="questionLikes" separator="," item="questionLike" open="(" close=")">
+            (#{questionLike.questionId}, #{questionLike.userId})
+        </foreach>
+    </delete>
+</mapper>

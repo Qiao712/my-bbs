@@ -6,7 +6,7 @@ import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
 import org.hibernate.validator.constraints.Length;
@@ -30,8 +30,8 @@ public class PostController {
 
     @PostMapping
     @PreAuthorize("isAuthenticated() and hasAuthority('post:add')")
-    public Result<Void> addPost(@Validated(AddGroup.class) @RequestBody Post post){
-        return Result.build(postService.addPost(post));
+    public Result<Void> addPost(@Validated(AddGroup.class) @RequestBody Question question){
+        return Result.build(postService.addPost(question));
     }
 
     @PostMapping("/images")

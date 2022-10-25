@@ -1,25 +1,21 @@
 package github.qiao712.bbs;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import github.qiao712.bbs.domain.entity.Comment;
-import github.qiao712.bbs.domain.entity.Post;
-import github.qiao712.bbs.domain.entity.PostLike;
-import github.qiao712.bbs.mapper.CommentLikeMapper;
+import github.qiao712.bbs.domain.entity.Question;
+import github.qiao712.bbs.domain.entity.QuestionLike;
+import github.qiao712.bbs.mapper.AnswerLikeMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostLikeMapper;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionLikeMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.service.LikeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
@@ -28,11 +24,11 @@ public class TestLikeService {
     private LikeService likeService;
 
     @Autowired
-    private PostLikeMapper postLikeMapper;
+    private QuestionLikeMapper questionLikeMapper;
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
     @Autowired
-    private CommentLikeMapper commentLikeMapper;
+    private AnswerLikeMapper answerLikeMapper;
     @Autowired
     private CommentMapper commentMapper;
 
@@ -62,12 +58,12 @@ public class TestLikeService {
         LambdaUpdateWrapper<Comment> commentUpdate = new LambdaUpdateWrapper<>();
         commentUpdate.set(Comment::getLikeCount, 0);
         commentMapper.update(null, commentUpdate);
-        commentLikeMapper.delete(null);
+        answerLikeMapper.delete(null);
 
-        LambdaUpdateWrapper<Post> postUpdate = new LambdaUpdateWrapper<>();
-        postUpdate.set(Post::getLikeCount, 0);
-        postMapper.update(null, postUpdate);
-        postLikeMapper.delete(null);
+        LambdaUpdateWrapper<Question> postUpdate = new LambdaUpdateWrapper<>();
+        postUpdate.set(Question::getLikeCount, 0);
+        questionMapper.update(null, postUpdate);
+        questionLikeMapper.delete(null);
     }
 
     @Test
@@ -88,7 +84,7 @@ public class TestLikeService {
             executorService.execute(()->{
                 System.out.println("worker "+i_);
                 for(int j = 0; j < partSize; j++){
-                    postMapper.updateLikeCount(16L, (long) j);
+                    questionMapper.updateLikeCount(16L, (long) j);
                 }
             });
         }
@@ -113,11 +109,11 @@ public class TestLikeService {
 
             executorService.execute(()->{
                 System.out.println("worker "+i_);
-                PostLike postLike = new PostLike();
-                postLike.setPostId(21L);
+                QuestionLike questionLike = new QuestionLike();
+                questionLike.setQuestionId(21L);
                 for(int j = 0; j < partSize; j++){
-                    postLike.setUserId(i_ * partSize + j + 31L);
-                    postLikeMapper.insert(postLike);
+                    questionLike.setUserId(i_ * partSize + j + 31L);
+                    questionLikeMapper.insert(questionLike);
                 }
             });
         }

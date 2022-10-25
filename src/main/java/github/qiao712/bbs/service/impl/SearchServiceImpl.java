@@ -6,9 +6,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import github.qiao712.bbs.exception.ServiceException;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.service.SearchService;
 import github.qiao712.bbs.util.HtmlUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +52,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     @Autowired
     private SystemConfig systemConfig;
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
 
     private RestHighLevelClient restClient;
 
@@ -108,15 +108,15 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public void savePost(Post post) {
-        if(post == null || post.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
+    public void savePost(Question question) {
+        if(question == null || question.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
 
         //去除html样式
-        if(post.getContent() != null) post.setContent(HtmlUtil.getText(post.getContent()));
-        post.setLikeCount(null);
+        if(question.getContent() != null) question.setContent(HtmlUtil.getText(question.getContent()));
+        question.setLikeCount(null);
 
-        String postJson = toJSONString(post);
-        IndexRequest request = new IndexRequest(POST_INDEX).id(post.getId().toString());
+        String postJson = toJSONString(question);
+        IndexRequest request = new IndexRequest(POST_INDEX).id(question.getId().toString());
         request.source(postJson, XContentType.JSON);
         try {
             restClient.index(request, RequestOptions.DEFAULT);
@@ -136,13 +136,13 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public void updatePost(Post post) {
-        if(post == null || post.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
+    public void updatePost(Question question) {
+        if(question == null || question.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
 
-        UpdateRequest request = new UpdateRequest(POST_INDEX, post.getId().toString());
+        UpdateRequest request = new UpdateRequest(POST_INDEX, question.getId().toString());
 
-        if(post.getContent() != null) post.setContent(HtmlUtil.getText(post.getContent()));
-        String postJson = JSON.toJSONString(post);
+        if(question.getContent() != null) question.setContent(HtmlUtil.getText(question.getContent()));
+        String postJson = JSON.toJSONString(question);
         request.doc(postJson, XContentType.JSON);
 
         try {
@@ -153,7 +153,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public Post getPostDoc(Long postId) {
+    public Question getPostDoc(Long postId) {
         GetRequest request = new GetRequest(POST_INDEX, postId.toString());
         GetResponse response = null;
         try {
@@ -163,7 +163,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
         }
 
         if(response != null && response.getSourceAsString() != null){
-            return JSON.parseObject(response.getSourceAsString(), Post.class);
+            return JSON.parseObject(response.getSourceAsString(), Question.class);
         }else{
             log.error("Post文档查询失败");
             return null;
@@ -171,7 +171,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public IPage<Post> searchPosts(PageQuery pageQuery, String text, Long authorId, Long forumId) {
+    public IPage<Question> searchPosts(PageQuery pageQuery, String text, Long authorId, Long forumId) {
         SearchRequest request = new SearchRequest(POST_INDEX);
 
         //定义查询语句(DSL)
@@ -216,7 +216,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
         if(response == null) throw new RuntimeException("搜索失败");
 
         //处理结果
-        Page<Post> postPage = new Page<>();
+        Page<Question> postPage = new Page<>();
         postPage.setCurrent(pageQuery.getPageNo());
         postPage.setSize(pageQuery.getPageSize());
         if(response.getHits() == null){
@@ -225,43 +225,43 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
             return postPage;
         }
 
-        List<Post> posts = new ArrayList<>(pageQuery.getPageSize());
+        List<Question> questions = new ArrayList<>(pageQuery.getPageSize());
         for (SearchHit hit : response.getHits()) {
-            Post post = JSON.parseObject(hit.getSourceAsString(), Post.class);
+            Question question = JSON.parseObject(hit.getSourceAsString(), Question.class);
 
             //设置高亮的结果
             HighlightField highlightTitle = hit.getHighlightFields().get("title");
             HighlightField highlightContent = hit.getHighlightFields().get("content");
             if(highlightTitle != null){
-                post.setTitle(highlightTitle.getFragments()[0].toString());
+                question.setTitle(highlightTitle.getFragments()[0].toString());
             }
             if(highlightContent != null){
-                post.setContent(highlightContent.getFragments()[0].toString());
+                question.setContent(highlightContent.getFragments()[0].toString());
             }
 
-            posts.add(post);
+            questions.add(question);
         }
         postPage.setTotal(response.getHits().getTotalHits().value);
-        postPage.setRecords(posts);
+        postPage.setRecords(questions);
 
         return postPage;
     }
 
     @Override
     public void syncAllPosts() {
-        Page<Post> postPage = new Page<>(1, 100);
+        Page<Question> postPage = new Page<>(1, 100);
 
         do{
             //添加一批
             BulkRequest bulkRequest = new BulkRequest();
-            postMapper.selectPage(postPage, new QueryWrapper<>());
+            questionMapper.selectPage(postPage, new QueryWrapper<>());
 
-            for (Post post : postPage.getRecords()) {
-                IndexRequest indexRequest = new IndexRequest(POST_INDEX).id(post.getId().toString());
+            for (Question question : postPage.getRecords()) {
+                IndexRequest indexRequest = new IndexRequest(POST_INDEX).id(question.getId().toString());
 
-                post.setContent(HtmlUtil.getText(post.getContent()));
-                post.setLikeCount(null);
-                String postJson = toJSONString(post);
+                question.setContent(HtmlUtil.getText(question.getContent()));
+                question.setLikeCount(null);
+                String postJson = toJSONString(question);
                 indexRequest.source(postJson, XContentType.JSON);
 
                 bulkRequest.add(indexRequest);

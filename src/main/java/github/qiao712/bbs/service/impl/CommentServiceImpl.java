@@ -13,7 +13,7 @@ import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.mq.CommentMessageSender;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
@@ -33,7 +33,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private CommentMapper commentMapper;
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -54,9 +54,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         comment.setAuthorId(currentUser.getId());
 
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
+        QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", comment.getPostId());
-        if(!postMapper.exists(queryWrapper)){
+        if(!questionMapper.exists(queryWrapper)){
             throw new ServiceException("贴子不存在");
         }
 
@@ -107,7 +107,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         //贴子评论数+1
-        postMapper.increaseCommentCount(comment.getPostId(), 1L);
+        questionMapper.increaseCommentCount(comment.getPostId(), 1L);
 
         //发送评论/回复消息
         commentMessageSender.sendCommentAddMessage(comment);
@@ -219,7 +219,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         //更新评论数量
-        postMapper.increaseCommentCount(comment.getPostId(), -deletedCommentCount - 1);
+        questionMapper.increaseCommentCount(comment.getPostId(), -deletedCommentCount - 1);
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());

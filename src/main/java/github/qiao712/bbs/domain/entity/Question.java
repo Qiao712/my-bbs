@@ -13,12 +13,13 @@ import org.hibernate.validator.constraints.Length;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Null;
+import java.time.LocalDateTime;
 
-@TableName("t_post")
-@ApiModel(value = "Post对象", description = "贴子")
+@TableName("t_question")
+@ApiModel(value = "Question对象", description = "问题")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class Post extends BaseEntity {
+public class Question extends BaseEntity {
     @ApiModelProperty("标题")
     @NotBlank(groups = AddGroup.class, message = "标题不可为空")
     @Length(max = 100, message = "标题长度超出限制")
@@ -37,6 +38,10 @@ public class Post extends BaseEntity {
     @NotNull(groups = AddGroup.class, message = "所属板块不可为空")
     private Long forumId;
 
+    @ApiModelProperty("采纳的回答")
+    @Null(groups = AddGroup.class, message = "不允许在创建时采纳回答")
+    private Long adoptedAnswerId;
+
     @ApiModelProperty("点赞数")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定点赞数量")
     private Long likeCount;
@@ -46,10 +51,14 @@ public class Post extends BaseEntity {
     private Long viewCount;
 
     @ApiModelProperty
-    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定评论数量")
-    private Long commentCount;
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定回答数量")
+    private Long answerCount;
 
     @ApiModelProperty("热度分值")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定贴子热度分值")
     private Long score;
+
+    @ApiModelProperty("最后回答时间")
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定最后回答的时间")
+    LocalDateTime lastAnswerTime;
 }

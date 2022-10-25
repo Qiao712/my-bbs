@@ -7,15 +7,15 @@ import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-@TableName("t_comment_like")
-@ApiModel(value = "CommentLike对象", description = "用户对评论的点赞记录")
+@TableName("t_question_like")
+@ApiModel(value = "QuestionLike对象", description = "用户对问题的点赞记录")
 @Data
-public class CommentLike implements Serializable {
+public class QuestionLike implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long userId;
 
-    private Long commentId;
+    private Long questionId;
 
     private LocalDateTime createTime;
 }

@@ -1,9 +1,7 @@
 package github.qiao712.bbs.mq;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import github.qiao712.bbs.config.MQConfig;
-import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.SearchService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +23,13 @@ public class PostMessageListener {
         switch (postMessage.getPostMessageType()){
             case CREATE: {
                 //贴子添加, 同步至ElasticSearch
-                searchService.savePost(postMessage.getPost());
+                searchService.savePost(postMessage.getQuestion());
                 break;
             }
 
             case UPDATE:{
                 //贴子更新, 同步至ElasticSearch
-                searchService.updatePost(postMessage.getPost());
+                searchService.updatePost(postMessage.getQuestion());
             }
 
             case DELETE:{

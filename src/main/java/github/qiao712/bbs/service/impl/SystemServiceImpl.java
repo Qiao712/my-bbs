@@ -8,7 +8,7 @@ import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AdvertisementMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.SystemService;
@@ -23,7 +23,7 @@ import java.util.List;
 @Component
 public class SystemServiceImpl implements SystemService {
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
     @Autowired
     private UserMapper userMapper;
     @Autowired
@@ -40,7 +40,7 @@ public class SystemServiceImpl implements SystemService {
     @Override
     public Statistic getStatistic() {
         Statistic statistic = new Statistic();
-        statistic.setPostCount(postMapper.selectCount(null));
+        statistic.setPostCount(questionMapper.selectCount(null));
         statistic.setUserCount(userMapper.selectCount(null));
         statistic.setCommentCount(commentMapper.selectCount(null));
         return statistic;

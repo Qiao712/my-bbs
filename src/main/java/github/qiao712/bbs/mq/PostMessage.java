@@ -1,6 +1,6 @@
 package github.qiao712.bbs.mq;
 
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import lombok.Data;
 
 @Data
@@ -11,14 +11,14 @@ public class PostMessage {
         UPDATE
     }
 
-    private Post post;
+    private Question question;
     private Long postId;
     private PostMessageType postMessageType;
 
-    public static PostMessage buildPostAddMessage(Post post){
+    public static PostMessage buildPostAddMessage(Question question){
         PostMessage postMessage = new PostMessage();
         postMessage.postMessageType = PostMessageType.CREATE;
-        postMessage.post = post;
+        postMessage.question = question;
         return postMessage;
     }
 
@@ -29,10 +29,10 @@ public class PostMessage {
         return postMessage;
     }
 
-    public static PostMessage buildPostUpdateMessage(Post post){
+    public static PostMessage buildPostUpdateMessage(Question question){
         PostMessage postMessage = new PostMessage();
         postMessage.postMessageType = PostMessageType.UPDATE;
-        postMessage.post = post;
+        postMessage.question = question;
         return postMessage;
     }
 }

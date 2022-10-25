@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.qiao712.bbs.config.MQConfig;
 import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
 import github.qiao712.bbs.domain.entity.Comment;
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.service.MessageService;
 import github.qiao712.bbs.service.UserService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -24,7 +24,7 @@ public class CommentMessageListener {
     @Autowired
     private UserService userService;
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
     @Autowired
     private CommentMapper commentMapper;
 
@@ -51,11 +51,11 @@ public class CommentMessageListener {
         messageContent.setPostId(comment.getPostId());
 
         //设置贴子标题
-        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Post::getId, comment.getPostId());
-        queryWrapper.select(Post::getTitle, Post::getAuthorId);
-        Post post = postMapper.selectOne(queryWrapper);
-        messageContent.setPostTitle(post.getTitle());
+        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Question::getId, comment.getPostId());
+        queryWrapper.select(Question::getTitle, Question::getAuthorId);
+        Question question = questionMapper.selectOne(queryWrapper);
+        messageContent.setPostTitle(question.getTitle());
 
         //消息接收者
         Long receiverId = null;
@@ -68,7 +68,7 @@ public class CommentMessageListener {
             receiverId = repliedComment.getAuthorId();
         }else{
             //接收者为贴子作者
-            receiverId = post.getAuthorId();
+            receiverId = question.getAuthorId();
         }
 
         if(!Objects.equals(receiverId, comment.getAuthorId())){
