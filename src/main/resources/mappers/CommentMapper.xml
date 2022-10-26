@@ -60,4 +60,11 @@
     <select id="existsById" resultType="Boolean">
         SELECT EXISTS(SELECT * FROM t_comment WHERE id = #{commentId}) AS e
     </select>
+
+    <delete id="deleteByQuestionId">
+        DELETE FROM t_comment
+        WHERE answer_id IN (
+            SELECT id FROM t_answer WHERE question_id = #{questionId}
+        )
+    </delete>
 </mapper>

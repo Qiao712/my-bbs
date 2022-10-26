@@ -22,8 +22,6 @@ import org.springframework.web.bind.annotation.*;
 public class CommentController {
     @Autowired
     private CommentService commentService;
-    @Autowired
-    private LikeService likeService;
 
     @PostMapping
     @PreAuthorize("isAuthenticated() and hasAuthority('comment:add')")
@@ -33,8 +31,8 @@ public class CommentController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('comment:list')")
-    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long questionId, Long parentCommentId){
-        return Result.succeed(commentService.listComments(pageQuery, questionId, parentCommentId));
+    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long answerId){
+        return Result.succeed(commentService.listComments(pageQuery, answerId));
     }
 
     @GetMapping("/my")
@@ -50,20 +48,5 @@ public class CommentController {
             throw new ServiceException("无权删除评论");
         }
         return Result.build(commentService.removeComment(commentId));
-    }
-
-    //点赞------------------------------
-    @GetMapping("/{commentId}/like")
-    @PreAuthorize("isAuthenticated() and hasAuthority('comment:like')")
-    public Result<Void> likeComment(@PathVariable("commentId") Long commentId){
-        likeService.likeComment(commentId, true);
-        return Result.succeed();
-    }
-
-    @GetMapping("/{commentId}/undo-like")
-    @PreAuthorize("isAuthenticated() and hasAuthority('comment:like')")
-    public Result<Void> undoLikeComment(@PathVariable("commentId") Long commentId){
-        likeService.likeComment(commentId, false);
-        return Result.succeed();
     }
 }

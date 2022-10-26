@@ -38,7 +38,7 @@
     </update>
 
     <update id="increaseAnswerCount">
-        UPDATE t_question SET comment_count = t_question.comment_count + #{delta} WHERE id = #{questionId}
+        UPDATE t_question SET answer_count = answer_count + #{delta} WHERE id = #{questionId}
     </update>
 
     <select id="existsById" resultType="Boolean">

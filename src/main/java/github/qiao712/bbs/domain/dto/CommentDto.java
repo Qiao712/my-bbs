@@ -9,5 +9,4 @@ import lombok.EqualsAndHashCode;
 public class CommentDto extends Comment {
     private UserDto author;
     private String repliedUserName;    //被回复的用户的用户
-    private Boolean liked;             //当前用户是否点赞
 }

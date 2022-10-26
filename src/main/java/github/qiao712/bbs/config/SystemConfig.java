@@ -37,9 +37,9 @@ public class SystemConfig {
     private Long maxAvatarSize;
 
     /**
-     * 问题中图片最大size (byte)
+     * 问题\回答中图片最大size (byte)
      */
-    private Long maxQuestionImageSize;
+    private Long maxInsertedImageSize;
 
     /**
      * 问题中图片最大数量
@@ -49,7 +49,7 @@ public class SystemConfig {
     /**
      * 评论中图片最大数量
      */
-    private Long maxCommentImageNum;
+    private Long maxAnswerImageNum;
 
     /**
      * 板块logo图片最大size (byte)

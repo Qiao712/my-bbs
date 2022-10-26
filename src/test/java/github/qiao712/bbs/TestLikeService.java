@@ -56,7 +56,6 @@ public class TestLikeService {
         }
 
         LambdaUpdateWrapper<Comment> commentUpdate = new LambdaUpdateWrapper<>();
-        commentUpdate.set(Comment::getLikeCount, 0);
         commentMapper.update(null, commentUpdate);
         answerLikeMapper.delete(null);
 

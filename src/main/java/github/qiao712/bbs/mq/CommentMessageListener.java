@@ -48,11 +48,11 @@ public class CommentMessageListener {
         messageContent.setComment(comment.getContent());
         messageContent.setAuthorId(comment.getAuthorId());
         messageContent.setAuthorUsername(userService.getUsername(comment.getAuthorId()));
-        messageContent.setQuestionId(comment.getQuestionId());
+//        messageContent.setQuestionId(comment.getQuestionId());
 
         //设置问题标题
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Question::getId, comment.getQuestionId());
+//        queryWrapper.eq(Question::getId, comment.getQuestionId());
         queryWrapper.select(Question::getTitle, Question::getAuthorId);
         Question question = questionMapper.selectOne(queryWrapper);
         messageContent.setQuestionTitle(question.getTitle());

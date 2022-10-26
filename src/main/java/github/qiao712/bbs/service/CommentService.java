@@ -18,7 +18,7 @@ public interface CommentService extends IService<Comment> {
      * 若parentCommentId != null，则查询该问题下的一级评论
      * 若parentCommentId == null，则查询该评论下的二级评论
      */
-    IPage<CommentDto> listComments(PageQuery pageQuery, Long questionId, Long parentCommentId);
+    IPage<CommentDto> listComments(PageQuery pageQuery, Long answerId);
 
     /**
      * 根据作者用户名获取评论

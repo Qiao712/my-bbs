@@ -26,18 +26,10 @@ public class Comment extends BaseEntity {
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定作者")
     private Long authorId;
 
-    @ApiModelProperty("所属的一级评论")
-    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定parentId")
-    private Long parentId;
-
     @ApiModelProperty("被回复的评论")
     private Long repliedId;
 
-    @ApiModelProperty("所属问题id")
-    @NotNull(groups = {AddGroup.class, UpdateGroup.class}, message = "必须指定所回复问题")
-    private Long questionId;
-
-    @ApiModelProperty("点赞数")
-    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定点赞数量")
-    private Integer likeCount;
+    @ApiModelProperty("所属回答")
+    @NotNull(groups = {AddGroup.class, UpdateGroup.class}, message = "必须指定所评论的回答")
+    private Long answerId;
 }

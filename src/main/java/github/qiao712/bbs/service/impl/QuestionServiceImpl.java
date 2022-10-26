@@ -11,6 +11,7 @@ import github.qiao712.bbs.domain.dto.QuestionDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
+import github.qiao712.bbs.mapper.AnswerMapper;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.QuestionMapper;
@@ -48,6 +49,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private AttachmentMapper attachmentMapper;
     @Autowired
     private CommentMapper commentMapper;
+    @Autowired
+    private AnswerMapper answerMapper;
     @Autowired
     private SystemConfig systemConfig;
     @Autowired
@@ -107,7 +110,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Transactional
     public String uploadImage(MultipartFile image) {
         //上传为临时文件
-        FileIdentity fileIdentity = fileService.uploadImage(QUESTION_IMAGE_SOURCE, image, systemConfig.getMaxQuestionImageSize(), true);
+        FileIdentity fileIdentity = fileService.uploadImage(QUESTION_IMAGE_SOURCE, image, systemConfig.getMaxInsertedImageSize(), true);
 
         if(fileIdentity != null) return fileService.getFileUrl(fileIdentity.getId());
         else return null;
@@ -185,11 +188,12 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         attachmentQuery.setQuestionId(questionId);
         attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
 
-        //删除所有评论
-        //TODO: 改为answer
-        Comment commentQuery = new Comment();
-        commentQuery.setQuestionId(questionId);
-        commentMapper.delete(new QueryWrapper<>(commentQuery));
+        //所有回答相关评论
+        commentMapper.deleteByQuestionId(questionId);
+        //删除所有回答
+        LambdaQueryWrapper<Answer> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Answer::getQuestionId, questionId);
+        answerMapper.delete(queryWrapper);
 
         if(questionMapper.deleteById(questionId) > 0){
             //发布删除事件，以同步至ElasticSearch
