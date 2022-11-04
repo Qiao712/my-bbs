@@ -5,7 +5,9 @@ import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.StatisticsService;
+import github.qiao712.bbs.util.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
@@ -15,10 +17,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
-public class StatisticsServiceImpl implements StatisticsService {
+public class StatisticsServiceImpl implements StatisticsService, InitializingBean {
     @Autowired
     private StringRedisTemplate redisTemplate;
     @Autowired
@@ -30,6 +34,18 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final String POST_VIEW_COUNT_TABLE = "post_view_counts";
     //用于计算贴子发布时间
     private final LocalDateTime POST_EPOCH = LocalDateTime.of(2022, 7,12,0,0,0);
+
+    //确保只有一个节点进行刷新
+    @Autowired
+    private RedisTemplate<String, Object> objectRedisTemplate;
+    private DistributedLock viewCountSyncLock;
+    private DistributedLock postScoreRefreshLock;
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        //创建分布式锁
+        viewCountSyncLock = new DistributedLock("post-view-counts-sync", 100, objectRedisTemplate);
+        postScoreRefreshLock = new DistributedLock("post-score-refresh", 100, objectRedisTemplate);
+    }
 
     @Override
     public void increasePostViewCount(long postId) {
@@ -80,6 +96,9 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public void syncPostViewCount() {
+        //加一个简单的分布式锁，保证只有一个节点进行同步操作
+        if(! viewCountSyncLock.tryLock()) return;
+
         log.info("同步贴子浏览量: 开始");
 
         final int BATCH_SIZE = 1000;    //收集多少条插入一次数据库
@@ -103,15 +122,20 @@ public class StatisticsServiceImpl implements StatisticsService {
                     postMapper.increaseViewCount(Long.parseLong(entry.getKey()), Long.parseLong(entry.getValue()));
                 }
                 entries.clear();
+
+                //将锁续费
+                viewCountSyncLock.refresh();
             }
         }
 
         log.info("同步贴子浏览量: 完成");
+        viewCountSyncLock.unlock();
     }
 
 
     @Override
     public void refreshPostScores(){
+        if(!postScoreRefreshLock.tryLock()) return;
         log.info("贴子热度刷新: 开始");
 
         final int BATCH_SIZE = 1000;
@@ -139,10 +163,14 @@ public class StatisticsServiceImpl implements StatisticsService {
                     updatePostScore(postIds);
                 }
                 postIds.clear();
+
+                //续费
+                postScoreRefreshLock.refresh();
             }
         }
 
         log.info("贴子热度刷新: 完成");
+        postScoreRefreshLock.unlock();
     }
 
     /**
