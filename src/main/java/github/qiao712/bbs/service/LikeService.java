@@ -19,7 +19,7 @@ public interface LikeService extends IService<PostLike> {
      * 从缓存中获取点赞数量
      * @return 无缓存的值，若返回null，说明近期未被点赞，数据库中的值即为最新的
      */
-    Long getPostLikeCountFromCache(Long postId);
+    Long getPostLikeCount(Long postId);
 
     /**
      * 评论点赞/取消点赞
@@ -36,7 +36,7 @@ public interface LikeService extends IService<PostLike> {
      * 从缓存中获取点赞数量
      * @return 无缓存的值，若返回null，说明近期未被点赞，数据库中的值即为最新的
      */
-    Long getCommentLikeCountFromCache(Long commentId);
+    Long getCommentLikeCount(Long commentId);
 
     /**
      * 同步点贴子赞数据至数据库

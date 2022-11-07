@@ -44,6 +44,8 @@ public class TestStatisticsService {
 
     @Autowired
     RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
     @Test
     public void testLock() throws InterruptedException {
         DistributedLock distributedLock = new DistributedLock("testlock", 10, redisTemplate);
@@ -63,8 +65,16 @@ public class TestStatisticsService {
 
     @Test
     public void testLua(){
-        DefaultRedisScript<Long> redisScript2 = new DefaultRedisScript<>("return 0", Long.class);
-        Long hello = redisTemplate.execute(redisScript2, Collections.singletonList("hello"));
-        System.out.println(hello);
+        DefaultRedisScript<Long> increaseIfExists = new DefaultRedisScript<>(
+            "return redis.call(\"HEXISTS\", KEYS[1], ARGV[1])", Long.class
+        );
+
+        System.out.println("exists --------------------" + redisTemplate.execute(increaseIfExists, Collections.singletonList("testh"), 123));
+
+        DefaultRedisScript<Long> set = new DefaultRedisScript<>(
+                "return redis.call(\"HSET\", KEYS[1], ARGV[1], ARGV[2])", Long.class
+        );
+
+        System.out.println("set-----------------" + stringRedisTemplate.execute(set, Collections.singletonList("123123"), "444", "555"));
     }
 }

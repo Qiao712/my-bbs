@@ -78,4 +78,10 @@ public class TestSomething {
 
         System.out.println(queryWrapper.getTargetSql());
     }
+
+
+    @Test
+    public void testLua(){
+
+    }
 }
