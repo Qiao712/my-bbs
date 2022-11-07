@@ -4,15 +4,15 @@ server:
 spring:
   #  配置数据源
   datasource:
-    username:
-    password:
-    url:
+    username: root
+    password: lty0712
+    url: jdbc:mysql://114.116.245.83:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis
   redis:
-    host:
-    password:
+    host: 114.116.245.83
+    password: lty0712
     database: 0
 
   # 文件上传大小限制
@@ -25,10 +25,10 @@ spring:
 
   # Kafka
   kafka:
-    bootstrap-servers:
+    bootstrap-servers: 114.116.245.83:9092
     # producer 生产者配置
     producer:
-      retries: 0  # 重试次数
+      retries: 3  # 重试次数
       acks: 1     # 应答级别:多少个分区副本备份完成时向生产者发送ack确认(可选0、1、all/-1)
       batch-size: 16384       # 批量大小
       buffer-memory: 33554432 # 生产端缓冲区大小
@@ -53,6 +53,10 @@ spring:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
 
+  # 自动解决循环依赖
+  main:
+    allow-circular-references: true
+
 mybatis-plus:
   mapper-locations: classpath:mappers/*.xml
   type-aliases-package: github.qiao712.bbs.domain.entity
@@ -74,17 +78,17 @@ sys:
 
   # 阿里云OOS配置
   aliOSS:
-    endpoint:
-    accessKeyId:
-    accessKeySecret:
-    bucket-name:
+    endpoint: xxx
+    accessKeyId: xxx
+    accessKeySecret: xxx
+    bucket-name: xxx
 
   # ElasticSearch地址
   elastic-search:
     hosts:
-      -
-    username:
-    password:
+      - localhost
+    username: root
+    password: test
 
   # 该进程标识，用于支持聊天服务的水平拓展。消息根据该id路由到目标用户所在的节点。
   # 以该值作为消息队列路由的标识

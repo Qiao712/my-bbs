@@ -1,4 +1,4 @@
-package github.qiao712.bbs.mq;
+package github.qiao712.bbs.mq.chat;
 
 import com.alibaba.fastjson.JSON;
 import github.qiao712.bbs.domain.dto.PrivateMessageDto;
@@ -16,7 +16,7 @@ public class ChatMessageListener{
     @Autowired
     private ChatService chatService;
 
-    @KafkaListener(topics = "${sys.chatServerId}")  //使用定义的节点ID作为Topic名
+    @KafkaListener(topics = "${sys.chatServerId}", groupId = "chat")  //使用定义的节点ID作为Topic名
     public void onMessage(ConsumerRecord<String, String> consumerRecord){
         PrivateMessageDto privateMessageDto = JSON.parseObject(consumerRecord.value(), PrivateMessageDto.class);
         chatService.sendMessage(privateMessageDto);

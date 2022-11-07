@@ -1,4 +1,4 @@
-package github.qiao712.bbs.mq;
+package github.qiao712.bbs.mq.post;
 
 import github.qiao712.bbs.domain.entity.Post;
 import lombok.Data;

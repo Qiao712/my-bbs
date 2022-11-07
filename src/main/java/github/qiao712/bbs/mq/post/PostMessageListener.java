@@ -1,9 +1,7 @@
-package github.qiao712.bbs.mq;
+package github.qiao712.bbs.mq.post;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import github.qiao712.bbs.config.MQConfig;
-import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.service.SearchService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +16,13 @@ public class PostMessageListener {
     @Autowired
     private SearchService searchService;
 
-    @KafkaListener(topics = {MQConfig.POST_TOPIC})
+    @KafkaListener(topics = {MQConfig.POST_TOPIC}, groupId = "post")
     public void onMessage(ConsumerRecord<String, String> consumerRecord){
         PostMessage postMessage = JSON.parseObject(consumerRecord.value(), PostMessage.class);
+        processMessage(postMessage);
+    }
 
+    public void processMessage(PostMessage postMessage){
         switch (postMessage.getPostMessageType()){
             case CREATE: {
                 //贴子添加, 同步至ElasticSearch

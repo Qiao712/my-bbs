@@ -14,7 +14,7 @@ import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.mq.CommentMessageSender;
+import github.qiao712.bbs.mq.comment.CommentMessageSender;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;

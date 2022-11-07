@@ -1,4 +1,4 @@
-package github.qiao712.bbs.mq;
+package github.qiao712.bbs.mq.chat;
 
 import com.alibaba.fastjson.JSON;
 import github.qiao712.bbs.domain.dto.PrivateMessageDto;

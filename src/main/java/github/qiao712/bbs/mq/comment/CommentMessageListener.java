@@ -1,4 +1,4 @@
-package github.qiao712.bbs.mq;
+package github.qiao712.bbs.mq.comment;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -28,10 +28,13 @@ public class CommentMessageListener {
     @Autowired
     private CommentMapper commentMapper;
 
-    @KafkaListener(topics = {MQConfig.COMMENT_TOPIC})
+    @KafkaListener(topics = {MQConfig.COMMENT_TOPIC}, groupId = "comment")
     public void onMessage(ConsumerRecord<String, String> consumerRecord){
         CommentMessage commentMessage = JSON.parseObject(consumerRecord.value(), CommentMessage.class);
+        processMessage(commentMessage);
+    }
 
+    public void processMessage(CommentMessage commentMessage){
         switch (commentMessage.getCommentMessageType()){
             case COMMENT_ADD:
                 sendCommentNoticeMessage(commentMessage.getComment());

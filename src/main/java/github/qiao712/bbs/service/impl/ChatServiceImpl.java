@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
-import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.ConversationDto;
 import github.qiao712.bbs.domain.dto.PrivateMessageDto;
@@ -18,7 +17,7 @@ import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.ConversationMapper;
 import github.qiao712.bbs.mapper.PrivateMessageMapper;
 import github.qiao712.bbs.mapper.UserMapper;
-import github.qiao712.bbs.mq.ChatMessageSender;
+import github.qiao712.bbs.mq.chat.ChatMessageSender;
 import github.qiao712.bbs.service.ChatService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.PageUtil;
@@ -41,7 +40,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j

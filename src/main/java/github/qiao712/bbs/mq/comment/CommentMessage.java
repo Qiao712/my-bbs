@@ -1,4 +1,4 @@
-package github.qiao712.bbs.mq;
+package github.qiao712.bbs.mq.comment;
 
 import github.qiao712.bbs.domain.entity.Comment;
 import lombok.Data;
