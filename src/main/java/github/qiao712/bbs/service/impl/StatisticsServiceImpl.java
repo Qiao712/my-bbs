@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
 import github.qiao712.bbs.util.DistributedLock;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,8 @@ public class StatisticsServiceImpl implements StatisticsService, InitializingBea
     private StringRedisTemplate redisTemplate;
     @Autowired
     private PostMapper postMapper;
+    @Autowired
+    private LikeService likeService;
 
     //需要需要刷新热度分数的贴子
     private final String POST_SCORE_REFRESH_TABLE = "post_to_refresh";
@@ -184,7 +187,8 @@ public class StatisticsServiceImpl implements StatisticsService, InitializingBea
         List<Post> posts = postMapper.selectList(queryWrapper);
 
         for (Post post : posts) {
-            postMapper.updateScore(post.getId(), computePostScore(post.getLikeCount(), post.getCommentCount(), post.getViewCount(), post.getCreateTime()));
+            Long score = computePostScore(likeService.getPostLikeCount(post.getId()), post.getCommentCount(), post.getViewCount(), post.getCreateTime());
+            postMapper.updateScore(post.getId(), score);
         }
     }
 
