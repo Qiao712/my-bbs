@@ -28,12 +28,6 @@ public class SystemAdminController {
     }
 
     //首页广告设置------------------------------------------------------
-    @PostMapping("/home-ads/images")
-    @PreAuthorize("hasAuthority('admin:sys:ads:add')")
-    public Result<Long> uploadAdvertisementImage(@RequestPart("image") MultipartFile imageFile){
-        return Result.succeedNotNull(systemService.uploadAdvertisementImage(imageFile));
-    }
-
     @PostMapping("/home-ads")
     @PreAuthorize("hasAuthority('admin:sys:ads:add')")
     public Result<Void> addAdvertisement(@Validated(AddGroup.class) @RequestBody Advertisement advertisement){

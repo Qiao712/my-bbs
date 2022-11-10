@@ -95,14 +95,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
                 if(imageFileIdentity == null) continue;  //为外部连接
 
                 if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())
-                    && PostServiceImpl.POST_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
+                    && FileService.POST_IMAGE_FILE.equals(imageFileIdentity.getSource())){
                     imageFileIds.add(imageFileIdentity.getId());
                 }
             }
             if(!imageFileIds.isEmpty()){
                 attachmentMapper.insertAttachments(comment.getPostId(), comment.getId(), imageFileIds);
-                //将引用的图片文件标记为非临时文件，不再进行清理
-                fileService.setTempFlags(imageFileIds, false);
+                //引用图片
+                fileService.increaseReferenceCount(imageFileIds, 1);
             }
         }
 
@@ -200,10 +200,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             commentQuery.setParentId(commentId);
             deletedCommentCount += commentMapper.delete(new QueryWrapper<>(commentQuery));
 
-            //标记其引用的图片(附件)可以清理
+            //引用计数减
             List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getPostId(), comment.getId());
             if(!attachmentFileIds.isEmpty())
-                fileService.setTempFlags(attachmentFileIds, true);
+                fileService.increaseReferenceCount(attachmentFileIds, -1);
 
             //删除attachment记录
             Attachment attachmentQuery = new Attachment();

@@ -16,7 +16,6 @@ import github.qiao712.bbs.mapper.RoleMapper;
 import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.UserService;
-import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -44,9 +42,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private SystemConfig systemConfig;
     @Autowired
     private FileService fileService;
-
-    //头像文件source标识
-    private final static String AVATAR_IMAGE_SOURCE = "avatar-image";
 
     /**
      * 实现UserDetailsService的方法，提供用户信息
@@ -182,18 +177,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional
-    public boolean setAvatar(Long userId, MultipartFile file) {
-        //删除原头像图片
+    public boolean setAvatar(Long userId, Long fileId) {
+        //检查图片文件上传来源
+        FileIdentity fileIdentity = fileService.getFileIdentity(fileId);
+        if(fileIdentity != null && !Objects.equals(fileIdentity.getSource(), FileService.USER_AVATAR_IMAGE_FILE)){
+            throw new ServiceException("图片非法");
+        }
+
+        //释放原头像图片
         User originUser = userMapper.selectById(userId);
         if(originUser == null) return false;
-        fileService.deleteFile(originUser.getAvatarFileId());
+        fileService.increaseReferenceCount(originUser.getAvatarFileId(), -1);
 
-        //保存图片
-        FileIdentity avatar = fileService.uploadImage(AVATAR_IMAGE_SOURCE, file, systemConfig.getMaxAvatarSize(),false);
+        //引用图片
+        fileService.increaseReferenceCount(fileId, 1);
 
         User user = new User();
         user.setId(userId);
-        user.setAvatarFileId(avatar != null ? avatar.getId() : null);
+        user.setAvatarFileId(fileId);
         return userMapper.updateById(user) > 0;
     }
 

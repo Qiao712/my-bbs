@@ -58,9 +58,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     //Post中允许排序的列
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
 
-    //贴子中图片的source(标识)
-    public final static String POST_IMAGE_SOURCE = "post-image";
-
     @Override
     @Transactional
     public boolean addPost(Post post) {
@@ -87,30 +84,20 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
             if(imageFileIdentity == null) continue;  //为外部链接
 
-            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId()) && POST_IMAGE_SOURCE.equals(imageFileIdentity.getSource())){
+            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId()) && FileService.POST_IMAGE_FILE.equals(imageFileIdentity.getSource())){
                 imageFileIds.add(imageFileIdentity.getId());
             }
         }
         if(!imageFileIds.isEmpty()){
             attachmentMapper.insertAttachments(post.getId(), null, imageFileIds);
 
-            //将引用的图片文件标记为非临时文件，不再进行清理
-            fileService.setTempFlags(imageFileIds, false);
+            //引用图片
+            fileService.increaseReferenceCount(imageFileIds, 1);
         }
 
         //发布添加事件，以同步至ElasticSearch
         postMessageSender.sendPostAddMessage(post);
         return true;
-    }
-
-    @Override
-    @Transactional
-    public String uploadImage(MultipartFile image) {
-        //上传为临时文件
-        FileIdentity fileIdentity = fileService.uploadImage(POST_IMAGE_SOURCE, image, systemConfig.getMaxPostImageSize(), true);
-
-        if(fileIdentity != null) return fileService.getFileUrl(fileIdentity.getId());
-        else return null;
     }
 
     @Override
@@ -175,10 +162,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Override
     public boolean removePost(Long postId) {
         //删除所有附件
-        //标记其引用的图片(附件)可以清理
+        //文件引用计数-1
         List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfPost(postId);
         if(!attachmentFileIds.isEmpty()){
-            fileService.setTempFlags(attachmentFileIds, true);
+            fileService.increaseReferenceCount(attachmentFileIds, -1);
         }
         //删除attachment记录
         Attachment attachmentQuery = new Attachment();

@@ -27,12 +27,6 @@ public class TestFileService {
     }
 
     @Test
-    public void testTempFlag(){
-        List<Long> fileIds = Lists.list(16L, 17L, 18L, 19L, 20L);
-        fileService.setTempFlags(fileIds, true);
-    }
-
-    @Test
     public void testDeleteTemporaryFile(){
         fileService.clearTemporaryFile();
     }

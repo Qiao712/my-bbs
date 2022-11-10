@@ -9,19 +9,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
+import github.qiao712.bbs.domain.dto.FileIdentityDto;
 import github.qiao712.bbs.domain.entity.FileIdentity;
-import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.exception.FileUploadException;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.FileMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.util.FileUtil;
-import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.SecurityUtil;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -58,28 +53,28 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public FileIdentity uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType, boolean isTemporary) {
+    public FileIdentityDto uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType) {
         //检查文件是否合法
         String fileType = FileUtil.getSuffix(file.getOriginalFilename());
         if(legalType != null && !legalType.contains(fileType)) throw new ServiceException("文件类型非法");
         if(file.getSize() > maxSize) throw new ServiceException("文件大小超出限制");
 
         try(InputStream inputStream = file.getInputStream()){
-            return uploadFile(source, fileType, inputStream, isTemporary);
+            return uploadFile(source, fileType, inputStream);
         } catch (IOException e) {
             throw new FileUploadException(e);
         }
     }
 
     @Override
-    public FileIdentity uploadImage(String source, MultipartFile file, Long maxSize, boolean isTemporary) {
+    public FileIdentityDto uploadImage(String source, MultipartFile file, Long maxSize) {
         String fileType = FileUtil.getSuffix(file.getOriginalFilename());
         if(! FileUtil.isPictureFile(fileType)) throw new ServiceException("非图片文件");
 
-        return uploadFile(source, file, maxSize, null, isTemporary);
+        return uploadFile(source, file, maxSize, null);
     }
 
-    private FileIdentity uploadFile(String source, String type, InputStream inputStream, boolean isTemporary) {
+    private FileIdentityDto uploadFile(String source, String type, InputStream inputStream) {
         String filename = generatorFileName() + (type != null ? ("." + type) : "");
         String filepath = source + '/' + filename;
 
@@ -101,16 +96,26 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
         fileIdentity.setFilepath(filepath);
         fileIdentity.setSource(source);
         fileIdentity.setType(type);
-        fileIdentity.setIsTemporary(isTemporary);
+        fileIdentity.setRefCount(0);
         fileIdentity.setUploaderId(SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null);  //文件上传者
         fileMapper.insert(fileIdentity);
 
-        return fileIdentity;
+        //返回文件Id 和 Url
+        FileIdentityDto fileIdentityDto = new FileIdentityDto();
+        fileIdentityDto.setId(fileIdentity.getId());
+        fileIdentityDto.setUrl(getFileUrl(fileIdentity.getFilepath()));
+        return fileIdentityDto;
     }
 
     @Override
-    public boolean setTempFlags(List<Long> fileIds, boolean isTemporary) {
-        return fileMapper.updateTempFlag(fileIds, isTemporary) > 0;
+    public boolean increaseReferenceCount(List<Long> fileIds, int delta) {
+        if(fileIds.isEmpty()) return false;
+        return fileMapper.increaseRefCount(fileIds, delta) > 0;
+    }
+
+    @Override
+    public boolean increaseReferenceCount(Long fileId, int delta) {
+        return increaseReferenceCount(Collections.singletonList(fileId), delta);
     }
 
     @Override
@@ -156,8 +161,8 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     @Override
     public void clearTemporaryFile() {
         QueryWrapper<FileIdentity> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("is_temporary", true);
-        queryWrapper.le("is_temporary", LocalDateTime.now().minusSeconds(systemConfig.getMinTempFileLife()));
+        queryWrapper.eq("ref_count", 0);
+        queryWrapper.le("update_time", LocalDateTime.now().minusSeconds(systemConfig.getMinTempFileLife()));
         Page<FileIdentity> page = new Page<>(1, 1000);  //阿里云OSS批量删除，一次最多1000个
 
         while(true){
@@ -173,7 +178,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
             DeleteObjectsResult deleteObjectsResult = ossClient.deleteObjects(deleteObjectsRequest);
             List<String> notDeletedObjects = deleteObjectsResult.getDeletedObjects();   //删除失败的文件列表
 
-            //成功删除的文件的id
+            //获取成功删除的文件的id
             List<Long> ids;
             if(notDeletedObjects.isEmpty()){
                 ids = files.stream().map(FileIdentity::getId).collect(Collectors.toList());
@@ -185,6 +190,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
                 }
             }
 
+            //从数据库中删除
             fileMapper.deleteBatchIds(ids);
 
             //下一页

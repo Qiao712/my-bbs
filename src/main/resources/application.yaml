@@ -78,10 +78,10 @@ sys:
 
   # 阿里云OOS配置
   aliOSS:
-    endpoint: xxx
-    accessKeyId: xxx
-    accessKeySecret: xxx
-    bucket-name: xxx
+    endpoint: oss-cn-beijing.aliyuncs.com
+    accessKeyId: LTAI5tPWJhgitqKfhuPWrEfS
+    accessKeySecret: siBZmvrbPidl5nudvMqSZOZNOBdibS
+    bucket-name: qiao712-my-bbs
 
   # ElasticSearch地址
   elastic-search:

@@ -1,6 +1,7 @@
 package github.qiao712.bbs.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import github.qiao712.bbs.domain.dto.FileIdentityDto;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,6 +11,12 @@ import java.util.List;
 import java.util.Set;
 
 public interface FileService extends IService<FileIdentity> {
+    //标识图片来源接口，即标识图片用途
+    String USER_AVATAR_IMAGE_FILE = "user-avatar";
+    String POST_IMAGE_FILE = "post-image";
+    String FORUM_LOGO_IMAGE_FILE = "forum-logo";
+    String ADVERTISEMENT_IMAGE_FILE = "ad-image";
+
     /**
      * 上传文件，返回文件标识对象
      * @param source 文件来源(标识用途)
@@ -18,14 +25,19 @@ public interface FileService extends IService<FileIdentity> {
      * @param legalType 合法的文件类型集合
      * @return 返回文件标识对象
      */
-    FileIdentity uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType, boolean isTemporary);
+    FileIdentityDto uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType);
 
-    FileIdentity uploadImage(String source, MultipartFile file, Long maxSize, boolean isTemporary);
+    FileIdentityDto uploadImage(String source, MultipartFile file, Long maxSize);
 
     /**
-     * 设置文件是否为临时文件
+     * 增加引用计数
      */
-    boolean setTempFlags(List<Long> fileIds, boolean isTemporary);
+    boolean increaseReferenceCount(List<Long> fileIds, int delta);
+
+    /**
+     * 增加引用计数
+     */
+    boolean increaseReferenceCount(Long fileId, int delta);
 
     /**
      * 根据文件id读取文件内容

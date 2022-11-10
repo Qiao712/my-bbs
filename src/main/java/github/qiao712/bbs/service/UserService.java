@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.User;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService extends IService<User> {
@@ -24,5 +25,5 @@ public interface UserService extends IService<User> {
 
     boolean setUserStatus(Long userId, boolean enable);
 
-    boolean setAvatar(Long userId, MultipartFile file);
+    boolean setAvatar(Long userId, Long fileId);
 }

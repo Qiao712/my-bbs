@@ -1,10 +1,8 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.dto.Statistic;
 import github.qiao712.bbs.domain.entity.Advertisement;
-import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AdvertisementMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -15,9 +13,7 @@ import github.qiao712.bbs.service.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -32,10 +28,6 @@ public class SystemServiceImpl implements SystemService {
     private FileService fileService;
     @Autowired
     private AdvertisementMapper advertisementMapper;
-    @Autowired
-    private SystemConfig systemConfig;
-
-    private final static String ADVERTISEMENT_IMAGE_SOURCE = "ad-image";
 
     @Override
     public Statistic getStatistic() {
@@ -46,16 +38,11 @@ public class SystemServiceImpl implements SystemService {
         return statistic;
     }
 
-    @Override
-    public Long uploadAdvertisementImage(MultipartFile imageFile) {
-        FileIdentity fileIdentity = fileService.uploadImage(ADVERTISEMENT_IMAGE_SOURCE, imageFile, systemConfig.getMaxAdvertisementImageSize(), true);
-        return fileIdentity != null ? fileIdentity.getId() : null;
-    }
 
     @Override
     @Transactional
     public boolean addAdvertisement(Advertisement advertisement) {
-        useImage(advertisement.getImageFileId());
+        referenceImage(advertisement.getImageFileId());
         return advertisementMapper.insert(advertisement) > 0;
     }
 
@@ -77,10 +64,10 @@ public class SystemServiceImpl implements SystemService {
     @Override
     @Transactional
     public boolean removeAdvertisement(Long advertisementId) {
-        advertisementMapper.selectById(advertisementId);
+        Advertisement advertisement = advertisementMapper.selectById(advertisementId);
 
         //释放图片
-        fileService.setTempFlags(Collections.singletonList(advertisementId), true);
+        fileService.increaseReferenceCount(advertisement.getImageFileId(), -1);
 
         return advertisementMapper.deleteById(advertisementId) > 0;
     }
@@ -95,21 +82,25 @@ public class SystemServiceImpl implements SystemService {
             return false;
         }
 
+        //释放原图片
+        fileService.increaseReferenceCount(oldAdvertisement.getImageFileId(), -1);
+
+        //引用新图片
         if(advertisement.getImageFileId() != null)
-            useImage(advertisement.getImageFileId());
+            referenceImage(advertisement.getImageFileId());
 
         return true;
     }
 
     /**
-     * 使用并锁定图片
+     * 引用图片文件
      */
-    private void useImage(Long imageFileId){
+    private void referenceImage(Long imageFileId){
         if(imageFileId != null){
             //限制其只能引用通过广告图片接口上传的图片
             String source = fileService.getFileIdentity(imageFileId).getSource();
-            if(ADVERTISEMENT_IMAGE_SOURCE.equals(source)){
-                if(!fileService.setTempFlags(Collections.singletonList(imageFileId), false)){
+            if(FileService.ADVERTISEMENT_IMAGE_FILE.equals(source)){
+                if(!fileService.increaseReferenceCount(imageFileId, 1)){
                     throw new ServiceException("图片文件无效");
                 }
             }else{

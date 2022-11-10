@@ -34,12 +34,6 @@ public class PostController {
         return Result.build(postService.addPost(post));
     }
 
-    @PostMapping("/images")
-    @PreAuthorize("isAuthenticated() and hasAuthority('post:image:upload')")
-    public Result<String> uploadImage(@RequestPart("image") MultipartFile imageFile){
-        return Result.succeed("图片上传成功", postService.uploadImage(imageFile));
-    }
-
     @GetMapping("/{postId}")
     @PreAuthorize("hasAuthority('post:get')")
     public Result<PostDto> getPost(@PathVariable("postId") Long postId){

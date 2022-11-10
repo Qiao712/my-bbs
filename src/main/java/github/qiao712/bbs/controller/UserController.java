@@ -37,12 +37,12 @@ public class UserController {
         return Result.succeed(userService.getUser(authUser.getId()));
     }
 
-    @PostMapping("/{userId}/avatar")
+    @PutMapping("/{userId}/avatar")
     @PreAuthorize("isAuthenticated() and #userId == #currentUser.id and hasAuthority('user:set-avatar')")
     public Result<Void> setMyAvatar(@PathVariable("userId") Long userId,
                                       @AuthenticationPrincipal AuthUser currentUser,
-                                      @RequestPart("file") MultipartFile file){
-        return Result.build(userService.setAvatar(userId, file));
+                                      Long fileId){
+        return Result.build(userService.setAvatar(userId, fileId));
     }
 
     @GetMapping("/{userId}")

@@ -8,5 +8,5 @@ import java.util.List;
 
 @Mapper
 public interface FileMapper extends BaseMapper<FileIdentity> {
-    int updateTempFlag(List<Long> fileIds, boolean isTemporary);
+    Integer increaseRefCount(List<Long> fileIds, int delta);
 }

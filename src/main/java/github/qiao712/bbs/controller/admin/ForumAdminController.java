@@ -45,7 +45,7 @@ public class ForumAdminController {
 
     @PutMapping("/{forumId}/logo")
     @PreAuthorize("hasAuthority('admin:forum:logo:update')")
-    public Result<Void> setForumLogo(@PathVariable Long forumId, @RequestPart("file") MultipartFile file){
-        return Result.build(forumService.setForumLogo(forumId, file));
+    public Result<Void> setForumLogo(@PathVariable Long forumId, Long fileId){
+        return Result.build(forumService.setForumLogo(forumId, fileId));
     }
 }

@@ -16,12 +16,6 @@ public interface SystemService {
 
     //首页广告--------------------------------------
 
-    /**
-     * 上传广告图片文件
-     * @return 文件id
-     */
-    Long uploadAdvertisementImage(@RequestPart("image") MultipartFile imageFile);
-
     boolean addAdvertisement(Advertisement advertisement);
 
     List<Advertisement> listAdvertisements();
