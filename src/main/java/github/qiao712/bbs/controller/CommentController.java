@@ -44,7 +44,7 @@ public class CommentController {
     @GetMapping("/my")
     @PreAuthorize("isAuthenticated() and hasAuthority('comment:list:mine')")
     public Result<IPage<CommentDetailDto>> listMyComments(@Validated PageQuery pageQuery, @AuthenticationPrincipal AuthUser authUser){
-        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authUser.getUsername()));
+        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authUser.getId()));
     }
 
     @DeleteMapping("/{commentId}")

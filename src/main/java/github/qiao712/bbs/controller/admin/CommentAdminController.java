@@ -22,8 +22,8 @@ public class CommentAdminController {
      */
     @GetMapping("/details")
     @PreAuthorize("hasAuthority('admin:comment:list')")
-    public Result<IPage<CommentDetailDto>> listCommentDetails(@Validated PageQuery pageQuery, String authorUsername){
-        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authorUsername));
+    public Result<IPage<CommentDetailDto>> listCommentDetails(@Validated PageQuery pageQuery, Long authorId){
+        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authorId));
     }
 
     @DeleteMapping("/{commentId}")

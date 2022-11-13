@@ -24,7 +24,7 @@ public interface CommentService extends IService<Comment> {
      * 根据作者用户名获取评论
      * @return CommentDetailDto 附加贴子标题，板块，被回复者名
      */
-    IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, String authorUsername);
+    IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, Long authorId);
 
     /**
      * 删除评论

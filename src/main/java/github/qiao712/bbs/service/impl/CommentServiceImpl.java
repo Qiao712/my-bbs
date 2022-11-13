@@ -175,15 +175,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     }
 
     @Override
-    public IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, String authorUsername) {
-        Long authorId = null;
-        if(authorUsername != null){
-            authorId = userService.getUserIdByUsername(authorUsername);
-            if(authorId == null){
-                //未找到用户，返回空的页
-                return pageQuery.<CommentDetailDto>getIPage().setTotal(0);
-            }
-        }
+    public IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, Long authorId) {
         return commentMapper.listCommentDetailDtos(pageQuery.getIPage(), authorId);
     }
 

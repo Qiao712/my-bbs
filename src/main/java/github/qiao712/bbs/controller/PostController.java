@@ -42,8 +42,8 @@ public class PostController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('post:list')")
-    public Result<IPage<PostDto>> listPosts(@Validated PageQuery pageQuery, Long forumId, String authorUsername){
-        return Result.succeed(postService.listPosts(pageQuery, forumId, authorUsername));
+    public Result<IPage<PostDto>> listPosts(@Validated PageQuery pageQuery, Long forumId, Long authorId){
+        return Result.succeed(postService.listPosts(pageQuery, forumId, authorId));
     }
 
     @GetMapping("/search")

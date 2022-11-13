@@ -113,13 +113,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, String authorUsername) {
+    public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId) {
         LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(forumId != null, Post::getForumId, forumId);
-        if(authorUsername != null){
-            Long authorId = userService.getUserIdByUsername(authorUsername);
-            queryWrapper.eq(Post::getAuthorId, authorId);
-        }
+        queryWrapper.eq(authorId != null, Post::getAuthorId, authorId);
 
         IPage<Post> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
 
