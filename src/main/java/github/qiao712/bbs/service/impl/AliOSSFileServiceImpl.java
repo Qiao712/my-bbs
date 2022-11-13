@@ -5,30 +5,38 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.internal.OSSHeaders;
 import com.aliyun.oss.model.*;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
-import github.qiao712.bbs.domain.dto.FileIdentityDto;
+import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.dto.FileInfoDto;
+import github.qiao712.bbs.domain.dto.FileURL;
 import github.qiao712.bbs.domain.entity.FileIdentity;
+import github.qiao712.bbs.domain.entity.User;
 import github.qiao712.bbs.exception.FileUploadException;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.FileMapper;
 import github.qiao712.bbs.service.FileService;
+import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.FileUtil;
+import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.FileCopyUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.alibaba.fastjson.JSON.toJSONString;
@@ -39,6 +47,8 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     private OSS ossClient;
     @Autowired
     private FileMapper fileMapper;
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private SystemConfig systemConfig;
@@ -53,7 +63,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public FileIdentityDto uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType) {
+    public FileURL uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType) {
         //检查文件是否合法
         String fileType = FileUtil.getSuffix(file.getOriginalFilename());
         if(legalType != null && !legalType.contains(fileType)) throw new ServiceException("文件类型非法");
@@ -67,14 +77,14 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public FileIdentityDto uploadImage(String source, MultipartFile file, Long maxSize) {
+    public FileURL uploadImage(String source, MultipartFile file, Long maxSize) {
         String fileType = FileUtil.getSuffix(file.getOriginalFilename());
         if(! FileUtil.isPictureFile(fileType)) throw new ServiceException("非图片文件");
 
         return uploadFile(source, file, maxSize, null);
     }
 
-    private FileIdentityDto uploadFile(String source, String type, InputStream inputStream) {
+    private FileURL uploadFile(String source, String type, InputStream inputStream) {
         String filename = generatorFileName() + (type != null ? ("." + type) : "");
         String filepath = source + '/' + filename;
 
@@ -101,10 +111,10 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
         fileMapper.insert(fileIdentity);
 
         //返回文件Id 和 Url
-        FileIdentityDto fileIdentityDto = new FileIdentityDto();
-        fileIdentityDto.setId(fileIdentity.getId());
-        fileIdentityDto.setUrl(getFileUrl(fileIdentity.getFilepath()));
-        return fileIdentityDto;
+        FileURL fileURL = new FileURL();
+        fileURL.setId(fileIdentity.getId());
+        fileURL.setUrl(getFileUrl(fileIdentity.getFilepath()));
+        return fileURL;
     }
 
     @Override
@@ -159,7 +169,37 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     }
 
     @Override
-    public void clearTemporaryFile() {
+    public IPage<FileInfoDto> listFileIdentities(PageQuery pageQuery, FileIdentity query) {
+        QueryWrapper<FileIdentity> queryWrapper = new QueryWrapper<>(query);
+        IPage<FileIdentity> filePage = fileMapper.selectPage(pageQuery.getIPage(), queryWrapper);
+        List<FileIdentity> fileIdentities = filePage.getRecords();
+
+        if(fileIdentities.isEmpty()){
+            return PageUtil.replaceRecords(filePage, Collections.emptyList());
+        }
+
+        //上传者名称
+        Set<Long> uploaderIds = fileIdentities.stream().map(FileIdentity::getUploaderId).collect(Collectors.toSet());
+        LambdaQueryWrapper<User> userQueryWrapper = new LambdaQueryWrapper<>();
+        userQueryWrapper.select(User::getUsername, User::getId);
+        userQueryWrapper.in(User::getId, uploaderIds);
+        List<User> users = userService.list(userQueryWrapper);
+        Map<Long, String> usernameMap = users.stream().collect(Collectors.toMap(User::getId, User::getUsername));
+
+        List<FileInfoDto> fileInfoDtos = new ArrayList<>(fileIdentities.size());
+        for (FileIdentity fileIdentity : fileIdentities) {
+            FileInfoDto fileInfoDto = new FileInfoDto();
+            BeanUtils.copyProperties(fileIdentity, fileInfoDto);
+            fileInfoDto.setUploaderUsername(usernameMap.get(fileIdentity.getUploaderId()));
+            fileInfoDto.setUrl(getFileUrl(fileIdentity.getFilepath()));
+            fileInfoDtos.add(fileInfoDto);
+        }
+
+        return PageUtil.replaceRecords(filePage, fileInfoDtos);
+    }
+
+    @Override
+    public void clearIdleFile() {
         QueryWrapper<FileIdentity> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("ref_count", 0);
         queryWrapper.le("update_time", LocalDateTime.now().minusSeconds(systemConfig.getMinTempFileLife()));
@@ -196,24 +236,6 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
             //下一页
             page.setCurrent(page.getCurrent() + 1);
         }
-    }
-
-    @Override
-    public boolean getFile(Long fileId, OutputStream outputStream){
-        FileIdentity fileIdentity = fileMapper.selectById(fileId);
-        if(fileIdentity != null){
-            OSSObject ossObject = ossClient.getObject(bucketName, fileIdentity.getFilepath());
-            InputStream inputStream = ossObject.getObjectContent();
-            try {
-                FileCopyUtils.copy(inputStream, outputStream);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
     private String generatorFileName(){

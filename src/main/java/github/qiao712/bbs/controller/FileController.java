@@ -2,7 +2,7 @@ package github.qiao712.bbs.controller;
 
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.Result;
-import github.qiao712.bbs.domain.dto.FileIdentityDto;
+import github.qiao712.bbs.domain.dto.FileURL;
 import github.qiao712.bbs.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,7 +27,7 @@ public class FileController {
      */
     @PreAuthorize("isAuthenticated() and hasAuthority('file:user-avatar:upload')")
     @PostMapping("/user-avatars")
-    public Result<FileIdentityDto> uploadUserAvatarImage(@RequestPart("file") MultipartFile file){
+    public Result<FileURL> uploadUserAvatarImage(@RequestPart("file") MultipartFile file){
         return Result.succeedNotNull(fileService.uploadImage(FileService.USER_AVATAR_IMAGE_FILE, file, systemConfig.getMaxAvatarSize()));
     }
 
@@ -36,7 +36,7 @@ public class FileController {
      */
     @PreAuthorize("isAuthenticated() and hasAuthority('file:forum-logo:upload')")
     @PostMapping("/forum-logos")
-    public Result<FileIdentityDto> uploadForumLogoImage(@RequestPart("file") MultipartFile file){
+    public Result<FileURL> uploadForumLogoImage(@RequestPart("file") MultipartFile file){
         return Result.succeedNotNull(fileService.uploadImage(FileService.FORUM_LOGO_IMAGE_FILE, file, systemConfig.getMaxLogoImageSize()));
     }
 
@@ -45,7 +45,7 @@ public class FileController {
      */
     @PreAuthorize("isAuthenticated() and hasAuthority('file:post-image:upload')")
     @PostMapping("/post-images")
-    public Result<FileIdentityDto> uploadPostImage(@RequestPart("file") MultipartFile file){
+    public Result<FileURL> uploadPostImage(@RequestPart("file") MultipartFile file){
         return Result.succeedNotNull(fileService.uploadImage(FileService.POST_IMAGE_FILE, file, systemConfig.getMaxPostImageSize()));
     }
 
@@ -54,7 +54,7 @@ public class FileController {
      */
     @PreAuthorize("isAuthenticated() and hasAuthority('file:advertisement:upload')")
     @PostMapping("/advertisement-images")
-    public Result<FileIdentityDto> uploadAdvertisementImage(@RequestPart("file") MultipartFile file){
+    public Result<FileURL> uploadAdvertisementImage(@RequestPart("file") MultipartFile file){
         return Result.succeedNotNull(fileService.uploadImage(FileService.ADVERTISEMENT_IMAGE_FILE, file, systemConfig.getMaxAdvertisementImageSize()));
     }
 }

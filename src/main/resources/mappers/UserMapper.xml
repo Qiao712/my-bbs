@@ -13,7 +13,7 @@
                 id = #{user.id}
             </if>
             <if test="user.username != null">
-                AND username LIKE concat('%', #{user.username}, '%')
+                AND username LIKE concat(#{user.username}, '%')
             </if>
             <if test="user.roleId != null">
                 AND role_id = #{user.roleId}

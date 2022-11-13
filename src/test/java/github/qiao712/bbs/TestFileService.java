@@ -1,15 +1,10 @@
 package github.qiao712.bbs;
 
-import com.aliyun.oss.model.DeleteObjectsRequest;
-import com.aliyun.oss.model.DeleteObjectsResult;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.service.impl.AliOSSFileServiceImpl;
-import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import java.util.List;
 
 @SpringBootTest
 public class TestFileService {
@@ -28,6 +23,6 @@ public class TestFileService {
 
     @Test
     public void testDeleteTemporaryFile(){
-        fileService.clearTemporaryFile();
+        fileService.clearIdleFile();
     }
 }

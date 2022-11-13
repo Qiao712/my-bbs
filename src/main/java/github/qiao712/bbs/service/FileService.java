@@ -1,12 +1,13 @@
 package github.qiao712.bbs.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import github.qiao712.bbs.domain.dto.FileIdentityDto;
+import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.dto.FileInfoDto;
+import github.qiao712.bbs.domain.dto.FileURL;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
 
@@ -25,9 +26,9 @@ public interface FileService extends IService<FileIdentity> {
      * @param legalType 合法的文件类型集合
      * @return 返回文件标识对象
      */
-    FileIdentityDto uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType);
+    FileURL uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType);
 
-    FileIdentityDto uploadImage(String source, MultipartFile file, Long maxSize);
+    FileURL uploadImage(String source, MultipartFile file, Long maxSize);
 
     /**
      * 增加引用计数
@@ -38,11 +39,6 @@ public interface FileService extends IService<FileIdentity> {
      * 增加引用计数
      */
     boolean increaseReferenceCount(Long fileId, int delta);
-
-    /**
-     * 根据文件id读取文件内容
-     */
-    boolean getFile(Long fileId, OutputStream outputStream);
 
     /**
      * 根据文件id获取用于访问该文件的url
@@ -64,14 +60,18 @@ public interface FileService extends IService<FileIdentity> {
      */
     FileIdentity getFileIdentityByUrl(String url);
 
-
     /**
      * 根据id删除文件
      */
     boolean deleteFile(Long fileId);
 
     /**
-     * 清理临时文件
+     * 获取信息文件列表
      */
-    void clearTemporaryFile();
+    IPage<FileInfoDto> listFileIdentities(PageQuery pageQuery, FileIdentity query);
+
+    /**
+     * 清理无用的文件(引用计数为0)
+     */
+    void clearIdleFile();
 }

@@ -54,6 +54,7 @@ public class PostController {
         return Result.succeed(postService.searchPosts(pageQuery, text, authorId, forumId));
     }
 
+    //TODO: bug
     @DeleteMapping("/{postId}")
     @PreAuthorize("isAuthenticated() and postService.isAuthor(postId, currentUser.id) and hasAuthority('post:remove:mine')")
     public Result<Void> removeMyPost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){

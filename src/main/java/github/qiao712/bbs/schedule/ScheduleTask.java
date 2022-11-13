@@ -29,7 +29,7 @@ public class ScheduleTask {
     @Scheduled(cron = "0 0 0 * * *")
     public void clearTemporaryFile(){
         log.info("开始清理临时文件");
-        fileService.clearTemporaryFile();
+        fileService.clearIdleFile();
     }
 
     /**
