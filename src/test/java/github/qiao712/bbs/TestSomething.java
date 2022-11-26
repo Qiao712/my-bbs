@@ -1,12 +1,14 @@
 package github.qiao712.bbs;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Conversation;
 import github.qiao712.bbs.mapper.ConversationMapper;
 import github.qiao712.bbs.util.HtmlUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.io.File;
 import java.io.FileReader;
@@ -77,8 +79,15 @@ public class TestSomething {
     }
 
 
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
     @Test
-    public void testLua(){
-
+    public void testRedis(){
+        PostDto postDto = new PostDto();
+        postDto.setTitle("hello");
+        redisTemplate.opsForValue().set("post_cache", postDto);
+        Object post_cache = redisTemplate.opsForValue().get("post_cache");
+        System.out.println(post_cache);
+        redisTemplate.delete("post_cache");
     }
 }

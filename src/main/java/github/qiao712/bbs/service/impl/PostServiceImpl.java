@@ -1,5 +1,6 @@
 package github.qiao712.bbs.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -21,12 +22,13 @@ import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service("postService")
@@ -55,6 +57,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private PostMessageSender postMessageSender;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    private final String POST_CACHE_KEY_PREFIX = "post-";
+    private final int CACHE_EXPIRE_SECONDS = 60;            //缓存过期时间 60s
+    private final int CACHED_POST_LISTS_LENGTH = 200;       //查询贴子列表时，前CACHED_POST_LISTS_LENGTH项从缓存中查询
+
     //Post中允许排序的列
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
 
@@ -78,7 +87,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             throw new ServiceException("图片数量超出限制");
         }
 
-        //如果文件的上传者是该该用户(贴子作者)，且上传来源为贴子图片，则记录该贴子对图片的引用(记录为该贴子的一个附件)
+        //记录该贴子对图片的引用(记录为该贴子的一个附件)
         List<Long> imageFileIds = new ArrayList<>(urls.size());
         for (String url : urls) {
             FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
@@ -107,9 +116,22 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //标记需要更新贴子热度分值
         statisticsService.markPostToFreshScore(postId);
 
+        //先从缓存中取出PostDto
+        String postKey = POST_CACHE_KEY_PREFIX + postId;
+        String cachedPostJson = redisTemplate.opsForValue().get(postKey);
+        if(cachedPostJson != null){
+            PostDto cachedPostDto = JSON.parseObject(cachedPostJson, PostDto.class);
+
+            //填充 点赞数 和 当前用户点赞状态
+            setLikeCountAndStatus(cachedPostDto);
+            return cachedPostDto;
+        }
+
+        //若不存在则读数据库，构建缓存
         Post post = postMapper.selectById(postId);
-        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        return postDtoMap(post, currentUserId);
+        PostDto postDto = convertToPostDto(post);
+        redisTemplate.opsForValue().set(postKey, JSON.toJSONString(postDto), CACHE_EXPIRE_SECONDS, TimeUnit.SECONDS);
+        return postDto;
     }
 
     @Override
@@ -119,17 +141,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         queryWrapper.eq(authorId != null, Post::getAuthorId, authorId);
 
         IPage<Post> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
-
         postPage = postMapper.selectPage(postPage, queryWrapper);
-
-        //to PostDto
-        List<Post> posts = postPage.getRecords();
-        List<PostDto> postDtos = new ArrayList<>(posts.size());
-        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        for (Post post : posts) {
-            postDtos.add(postDtoMap(post, currentUserId));
-        }
-
+        List<PostDto> postDtos = postPage.getRecords().stream().map(this::convertToPostDto).collect(Collectors.toList());
         return PageUtil.replaceRecords(postPage, postDtos);
     }
 
@@ -147,12 +160,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         //to PostDto
-        List<PostDto> postDtos = new ArrayList<>(posts.size());
-        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        for (Post post : posts) {
-            postDtos.add(postDtoMap(post, currentUserId));
-        }
-
+        List<PostDto> postDtos = posts.stream().map(this::convertToPostDto).collect(Collectors.toList());
         return PageUtil.replaceRecords(postPage, postDtos);
     }
 
@@ -177,6 +185,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         if(postMapper.deleteById(postId) > 0){
             //发布删除事件，以同步至ElasticSearch
             postMessageSender.sendPostDeleteMessage(postId);
+
+            //清除缓存
+            redisTemplate.delete(POST_CACHE_KEY_PREFIX+postId);
             return true;
         }
 
@@ -191,7 +202,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         return postMapper.exists(new QueryWrapper<>(postQuery));
     }
 
-    private PostDto postDtoMap(Post post, Long currentUserId){
+    private PostDto convertToPostDto(Post post){
         if(post == null) return null;
         PostDto postDto = new PostDto();
         BeanUtils.copyProperties(post, postDto);
@@ -206,14 +217,23 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         Forum forum = forumService.getById(post.getForumId());
         postDto.setForumName(forum.getName());
 
-        //当前用户是否已点赞
-        postDto.setLiked(likeService.hasLikedPost(post.getId(), currentUserId));
+        //点赞数量 / 点赞状态
+        setLikeCountAndStatus(postDto);
+        return postDto;
+    }
 
-        //查询Redis缓存的最新的点赞数量
-        Long likeCount = likeService.getPostLikeCount(post.getId());
+    /**
+     * 填充PostDto的 点赞数量 和 当前用户的点赞状态
+     */
+    private void setLikeCountAndStatus(PostDto postDto){
+        //当前用户是否已点赞
+        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
+        postDto.setLiked(likeService.hasLikedPost(postDto.getId(), currentUserId));
+
+        //查询点赞数量
+        Long likeCount = likeService.getPostLikeCount(postDto.getId());
         if(likeCount != null){
             postDto.setLikeCount(likeCount);
         }
-        return postDto;
     }
 }

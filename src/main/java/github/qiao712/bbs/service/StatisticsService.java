@@ -28,8 +28,7 @@ public interface StatisticsService {
      * 刷新需要刷新热度分值的贴子的热度分值
      */
     void refreshPostScores();
-
-
+    
     /**
      * 更新指定贴子的热度分值
      */

@@ -51,7 +51,7 @@ public class PostController {
     public Result<IPage<PostDto>> searchPosts(@Validated PageQuery pageQuery,
                                               @NotNull @NotBlank @Length(max = 30) String text,
                                               Long authorId, Long forumId){
-        return Result.succeed(postService.searchPosts(pageQuery, text, authorId, forumId));
+        return Result.succeed(postService.searchPosts(pageQuery, text, forumId, authorId));
     }
 
     //TODO: bug
