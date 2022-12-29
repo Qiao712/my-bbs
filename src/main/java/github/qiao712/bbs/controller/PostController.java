@@ -7,6 +7,7 @@ import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
 import org.hibernate.validator.constraints.Length;
@@ -54,10 +55,12 @@ public class PostController {
         return Result.succeed(postService.searchPosts(pageQuery, text, forumId, authorId));
     }
 
-    //TODO: bug
     @DeleteMapping("/{postId}")
-    @PreAuthorize("isAuthenticated() and postService.isAuthor(postId, currentUser.id) and hasAuthority('post:remove:mine')")
+    @PreAuthorize("isAuthenticated() and hasAuthority('post:remove:mine')")
     public Result<Void> removeMyPost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){
+        if(!postService.isAuthor(postId, currentUser.getId())){
+            throw new ServiceException("无权删除评论");
+        }
         return Result.build(postService.removePost(postId));
     }
 

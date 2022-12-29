@@ -8,6 +8,8 @@ import github.qiao712.bbs.domain.entity.User;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface UserService extends IService<User> {
     boolean register(User user);
 
@@ -15,11 +17,11 @@ public interface UserService extends IService<User> {
 
     String getUsername(Long userId);
 
-    Long getUserIdByUsername(String username);
-
     boolean updateUser(User user);
 
     IPage<UserDto> listUsers(PageQuery pageQuery, UserDto condition);
+
+    List<UserDto> listUsers(List<Long> userIds);
 
     boolean removeUser(Long userId);
 

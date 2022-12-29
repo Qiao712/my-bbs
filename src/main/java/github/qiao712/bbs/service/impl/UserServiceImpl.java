@@ -26,6 +26,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -103,15 +105,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.select("username");
         User user = userMapper.selectOne(queryWrapper);
         return user != null ? user.getUsername() : null;
-    }
-
-    @Override
-    public Long getUserIdByUsername(String username) {
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername, username);
-        queryWrapper.select(User::getId);
-        User user = userMapper.selectOne(queryWrapper);
-        return user != null ? user.getId() : null;
     }
 
     @Override
@@ -196,6 +189,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setId(userId);
         user.setAvatarFileId(fileId);
         return userMapper.updateById(user) > 0;
+    }
+
+    @Override
+    public List<UserDto> listUsers(List<Long> userIds) {
+        if(userIds.isEmpty()) return Collections.emptyList();
+        return userMapper.selectBatchIds(userIds).stream().map(this::convertToUserDto).collect(Collectors.toList());
     }
 
     private UserDto convertToUserDto(User user){
