@@ -3,6 +3,7 @@ package github.qiao712.bbs.service.impl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CredentialDto;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.security.TokenManager;
 import github.qiao712.bbs.service.AuthenticationService;
@@ -33,7 +34,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if(e instanceof BadCredentialsException) msg = ": 用户名或密码错误";
             else if(e instanceof DisabledException) msg = ": 账户不可用";
             else if(e instanceof LockedException) msg = ": 账户被锁定";
-            throw new ServiceException("登录失败" + msg);
+            throw new ServiceException(ResultCode.LOGIN_ERROR, "登录失败" + msg);
         }
 
         boolean rememberMe = credentialDto.getRememberMe() != null && credentialDto.getRememberMe();

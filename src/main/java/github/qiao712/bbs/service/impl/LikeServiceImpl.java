@@ -3,6 +3,7 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.entity.CommentLike;
 import github.qiao712.bbs.domain.entity.PostLike;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.CommentLikeMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -89,10 +90,10 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         Long userId = SecurityUtil.getCurrentUser().getId();
 
         if(!Boolean.TRUE.equals(postMapper.existsById(postId))){
-            throw new ServiceException("贴子不存在");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "贴子不存在");
         }
         if(postLikeMapper.isPostLikedByUser(postId, userId)){
-            throw new ServiceException("不可重复点赞");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "不可重复点赞");
         }
 
         //点赞记录
@@ -180,10 +181,10 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         Long userId = SecurityUtil.getCurrentUser().getId();
 
         if(!Boolean.TRUE.equals(commentMapper.existsById(commentId))){
-            throw new ServiceException("评论不存在");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "评论不存在");
         }
         if(commentLikeMapper.isCommentLikedByUser(commentId, userId)){
-            throw new ServiceException("不可重复点赞");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "不可重复点赞");
         }
 
         //点赞记录

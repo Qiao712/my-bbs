@@ -1,6 +1,5 @@
 package github.qiao712.bbs.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,6 +10,7 @@ import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Role;
 import github.qiao712.bbs.domain.entity.User;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.RoleMapper;
 import github.qiao712.bbs.mapper.UserMapper;
@@ -26,7 +26,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -72,7 +71,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", user.getUsername());
         if(userMapper.exists(queryWrapper)){
-            throw new ServiceException("注册失败: 该用户名已被注册");
+            throw new ServiceException(ResultCode.USER_ERROR, "该用户名已被注册");
         }
 
         //TODO: 邮箱注册功能
@@ -115,11 +114,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if(originUser == null) return false;
 
             if(user.getEnable() != null && !Objects.equals(user.getEnable(), originUser.getEnable())){
-                throw new ServiceException("不允许更改自己的用户状态");
+                throw new ServiceException(ResultCode.USER_ERROR, "不允许更改自己的用户状态");
             }
 
             if(user.getRoleId() != null && !Objects.equals(user.getRole(), originUser.getRole())){
-                throw new ServiceException("不允许更改自己的角色");
+                throw new ServiceException(ResultCode.USER_ERROR, "不允许更改自己的角色");
             }
         }
 
@@ -174,7 +173,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         //检查图片文件上传来源
         FileIdentity fileIdentity = fileService.getFileIdentity(fileId);
         if(fileIdentity != null && !Objects.equals(fileIdentity.getSource(), FileService.USER_AVATAR_IMAGE_FILE)){
-            throw new ServiceException("图片非法");
+            throw new ServiceException(ResultCode.FILE_ERROR, "图片非法");
         }
 
         //释放原头像图片

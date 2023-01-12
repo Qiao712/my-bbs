@@ -11,6 +11,7 @@ import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -84,7 +85,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //解析出引用的图片
         List<String> urls = HtmlUtil.getImageUrls(post.getContent());
         if(urls.size() > systemConfig.getMaxPostImageNum()){
-            throw new ServiceException("图片数量超出限制");
+            throw new ServiceException(ResultCode.POST_ERROR, "图片数量超出限制");
         }
 
         //记录该贴子对图片的引用(记录为该贴子的一个附件)

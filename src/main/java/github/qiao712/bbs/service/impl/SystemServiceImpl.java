@@ -3,6 +3,7 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.qiao712.bbs.domain.dto.Statistic;
 import github.qiao712.bbs.domain.entity.Advertisement;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AdvertisementMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -101,13 +102,13 @@ public class SystemServiceImpl implements SystemService {
             String source = fileService.getFileIdentity(imageFileId).getSource();
             if(FileService.ADVERTISEMENT_IMAGE_FILE.equals(source)){
                 if(!fileService.increaseReferenceCount(imageFileId, 1)){
-                    throw new ServiceException("图片文件无效");
+                    throw new ServiceException(ResultCode.INVALID_PARAM, "图片文件无效");
                 }
             }else{
-                throw new ServiceException("图片文件非法");
+                throw new ServiceException(ResultCode.FILE_ERROR, "图片文件非法");
             }
         }else{
-            throw new ServiceException("未指定图片");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "未指定图片");
         }
     }
 }

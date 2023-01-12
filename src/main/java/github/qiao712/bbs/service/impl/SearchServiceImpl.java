@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.SearchService;
@@ -109,7 +110,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
 
     @Override
     public void savePost(Post post) {
-        if(post == null || post.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
+        if(post == null || post.getId() == null) throw new ServiceException(ResultCode.INVALID_PARAM, "Post/Post.id 不可为空");
 
         //去除html样式
         if(post.getContent() != null) post.setContent(HtmlUtil.getText(post.getContent()));
@@ -137,7 +138,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
 
     @Override
     public void updatePost(Post post) {
-        if(post == null || post.getId() == null) throw new ServiceException("Post/Post.id 不可为空");
+        if(post == null || post.getId() == null) throw new ServiceException(ResultCode.INVALID_PARAM,"Post/Post.id 不可为空");
 
         UpdateRequest request = new UpdateRequest(POST_INDEX, post.getId().toString());
 

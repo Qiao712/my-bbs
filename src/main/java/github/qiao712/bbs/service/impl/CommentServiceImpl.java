@@ -10,6 +10,7 @@ import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -57,14 +58,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", comment.getPostId());
         if(!postMapper.exists(queryWrapper)){
-            throw new ServiceException("贴子不存在");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "贴子不存在");
         }
 
         //若该评论回复一个一级评论
         if(comment.getRepliedId() != null){
             Comment repliedComment = commentMapper.selectById(comment.getRepliedId());
             if(repliedComment == null || !repliedComment.getPostId().equals(comment.getPostId())){
-                throw new ServiceException("被回复的评论不存在");
+                throw new ServiceException(ResultCode.INVALID_PARAM, "被回复的评论不存在");
             }
 
             //设置二级评论的parentId
@@ -85,7 +86,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             //解析出引用的图片
             List<String> urls = HtmlUtil.getImageUrls(comment.getContent());
             if(urls.size() > systemConfig.getMaxCommentImageNum()){
-                throw new ServiceException("图片数量超出限制");
+                throw new ServiceException(ResultCode.COMMENT_ERROR, "图片数量超出限制");
             }
 
             //如果文件的上传者是该用户(评论作者)，则记录该评论对图片的引用(记录为该评论一个附件)

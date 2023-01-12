@@ -1,7 +1,7 @@
 package github.qiao712.bbs.security;
 
 import github.qiao712.bbs.domain.base.Result;
-import github.qiao712.bbs.domain.base.ResultStatus;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.util.ResponseUtil;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -16,7 +16,7 @@ import java.io.IOException;
 public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-        Result<Void> result = Result.build(ResultStatus.FORBIDDEN, authException.getMessage());
+        Result<Void> result = Result.build(ResultCode.NO_PERMISSION, authException.getMessage());
         ResponseUtil.response(response, result);
     }
 }

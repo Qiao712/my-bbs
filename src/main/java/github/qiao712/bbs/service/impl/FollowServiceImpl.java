@@ -7,6 +7,7 @@ import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.Follow;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.FollowMapper;
 import github.qiao712.bbs.service.FollowService;
@@ -31,18 +32,18 @@ public class FollowServiceImpl implements FollowService {
     @Transactional
     public boolean follow(Long userId, Long followingId) {
         if(Objects.equals(userId, followingId)){
-           throw new ServiceException("禁止关注自己");
+           throw new ServiceException(ResultCode.INVALID_PARAM, "禁止关注自己");
         }
 
         if(userService.getUsername(followingId) == null){
-            throw new ServiceException("目标用户不存在");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "目标用户不存在");
         }
 
         Follow follow = new Follow();
         follow.setFollowerId(userId);
         follow.setFollowingId(followingId);
         if(followMapper.exists(new QueryWrapper<>(follow))){
-            throw new ServiceException("已关注");
+            throw new ServiceException(ResultCode.FOLLOW_ERROR, "已关注");
         }
 
         return followMapper.insert(follow) > 0;
@@ -54,7 +55,7 @@ public class FollowServiceImpl implements FollowService {
         follow.setFollowerId(userId);
         follow.setFollowingId(followingId);
         if(followMapper.delete(new QueryWrapper<>(follow)) == 0){
-            throw new ServiceException("未关注");
+            throw new ServiceException(ResultCode.FOLLOW_ERROR, "未关注");
         }
 
         return true;

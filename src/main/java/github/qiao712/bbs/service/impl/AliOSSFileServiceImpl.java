@@ -12,11 +12,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.FileInfoDto;
 import github.qiao712.bbs.domain.dto.FileURL;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.User;
-import github.qiao712.bbs.exception.FileUploadException;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.FileMapper;
 import github.qiao712.bbs.service.FileService;
@@ -24,7 +24,6 @@ import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.FileUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.alibaba.fastjson.JSON.toJSONString;
 
 @Service
 public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity> implements FileService, InitializingBean {
@@ -66,20 +62,20 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     public FileURL uploadFile(String source, MultipartFile file, Long maxSize, Set<String> legalType) {
         //检查文件是否合法
         String fileType = FileUtil.getSuffix(file.getOriginalFilename());
-        if(legalType != null && !legalType.contains(fileType)) throw new ServiceException("文件类型非法");
-        if(file.getSize() > maxSize) throw new ServiceException("文件大小超出限制");
+        if(legalType != null && !legalType.contains(fileType)) throw new ServiceException(ResultCode.FAILURE, "文件类型非法");
+        if(file.getSize() > maxSize) throw new ServiceException(ResultCode.UPLOAD_ERROR, "文件大小超出限制");
 
         try(InputStream inputStream = file.getInputStream()){
             return uploadFile(source, fileType, inputStream);
         } catch (IOException e) {
-            throw new FileUploadException(e);
+            throw new ServiceException(ResultCode.UPLOAD_ERROR);
         }
     }
 
     @Override
     public FileURL uploadImage(String source, MultipartFile file, Long maxSize) {
         String fileType = FileUtil.getSuffix(file.getOriginalFilename());
-        if(! FileUtil.isPictureFile(fileType)) throw new ServiceException("非图片文件");
+        if(! FileUtil.isPictureFile(fileType)) throw new ServiceException(ResultCode.UPLOAD_ERROR, "非图片文件");
 
         return uploadFile(source, file, maxSize, null);
     }
@@ -99,7 +95,7 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
 
             ossClient.putObject(putObjectRequest);
         } catch (OSSException | ClientException e) {
-            throw new FileUploadException(e);
+            throw new ServiceException(ResultCode.UPLOAD_ERROR);
         }
 
         FileIdentity fileIdentity = new FileIdentity();

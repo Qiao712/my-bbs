@@ -2,6 +2,7 @@ package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.LikeService;
@@ -18,8 +19,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -73,7 +72,7 @@ public class StatisticsServiceImpl implements StatisticsService, InitializingBea
     public List<Long> listPostViewCounts(List<Long> postIds) {
         List<Long> viewCounts = postMapper.selectViewCountBatch(postIds);
         if(viewCounts.size() != postIds.size()){
-            throw new ServiceException("包含无效PostId");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "包含无效PostId");
         }
 
         //redis中的一部分

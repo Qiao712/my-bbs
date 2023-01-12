@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.entity.Authority;
 import github.qiao712.bbs.domain.entity.Role;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AuthorityMapper;
 import github.qiao712.bbs.mapper.RoleMapper;
@@ -56,9 +57,9 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         if(role == null) return false;
 
         if(ROLE_ADMIN.equals(role.getName())){
-            throw new ServiceException("禁止删除ROLE_ADMIN");
+            throw new ServiceException(ResultCode.ROLE_ERROR, "禁止删除ROLE_ADMIN");
         }else if(ROLE_ANONYMOUS.equals(role.getName())){
-            throw new ServiceException("禁止删除ROLE_ANONYMOUS");
+            throw new ServiceException(ResultCode.ROLE_ERROR, "禁止删除ROLE_ANONYMOUS");
         }
 
         roleMapper.revokeAllAuthorities(roleId);
@@ -82,7 +83,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         grantedAuthorityCache.remove(role.getName());
 
         if(flag1 && flag2) return true;
-        else throw new ServiceException("角色添加失败");  //抛出异常以回滚
+        else throw new ServiceException(ResultCode.ROLE_ERROR, "角色添加失败");  //抛出异常以回滚
     }
 
     @Override
@@ -102,7 +103,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             grantedAuthorityCache.remove(originRole.getName());
             return true;
         }else{
-            throw new ServiceException("角色更新失败");   //抛出异常以回滚
+            throw new ServiceException(ResultCode.ROLE_ERROR, "角色更新失败");   //抛出异常以回滚
         }
     }
 
@@ -177,7 +178,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     public boolean removeAuthority(Long authorityId) {
         Authority authority = authorityMapper.selectById(authorityId);
         if(authority.getValid()){
-            throw new ServiceException("禁止删除未失效权限");
+            throw new ServiceException(ResultCode.ROLE_ERROR, "禁止删除未失效权限");
         }
 
         //取消所有关联

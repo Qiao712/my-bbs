@@ -13,6 +13,7 @@ import github.qiao712.bbs.domain.dto.PrivateMessageDto;
 import github.qiao712.bbs.domain.entity.Conversation;
 import github.qiao712.bbs.domain.entity.PrivateMessage;
 import github.qiao712.bbs.domain.entity.User;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.ConversationMapper;
 import github.qiao712.bbs.mapper.PrivateMessageMapper;
@@ -100,21 +101,21 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
 
         //检查参数
         if(privateMessageDto.getContent().length() <= 0 || privateMessageDto.getContent().length() > 500){
-            throw new ServiceException("消息长度不合法");
+            throw new ServiceException(ResultCode.FAILURE, "消息长度不合法");
         }
         if(privateMessageDto.getType() != 1){
-            throw new ServiceException("消息类型非法");
+            throw new ServiceException(ResultCode.FAILURE, "消息类型非法");
         }
         if(receiverId == null) {
-             throw new ServiceException("接收者不可为空");
+             throw new ServiceException(ResultCode.FAILURE, "接收者不可为空");
         }
         if(Objects.equals(receiverId, senderId)){
-            throw new ServiceException("禁止向自己发送私信");
+            throw new ServiceException(ResultCode.FAILURE, "禁止向自己发送私信");
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", receiverId);
         if(!userMapper.exists(queryWrapper)){
-            throw new ServiceException("目标用户不存在");
+            throw new ServiceException(ResultCode.FAILURE, "目标用户不存在");
         }
 
         //获取会话ID

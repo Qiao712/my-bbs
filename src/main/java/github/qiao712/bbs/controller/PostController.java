@@ -7,6 +7,7 @@ import github.qiao712.bbs.domain.base.Result;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.PostService;
@@ -16,7 +17,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -59,7 +59,7 @@ public class PostController {
     @PreAuthorize("isAuthenticated() and hasAuthority('post:remove:mine')")
     public Result<Void> removeMyPost(@PathVariable("postId") Long postId, @AuthenticationPrincipal AuthUser currentUser){
         if(!postService.isAuthor(postId, currentUser.getId())){
-            throw new ServiceException("无权删除评论");
+            throw new ServiceException(ResultCode.NO_PERMISSION, "无权删除评论");
         }
         return Result.build(postService.removePost(postId));
     }

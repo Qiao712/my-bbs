@@ -1,7 +1,7 @@
 package github.qiao712.bbs.exception;
 
 import github.qiao712.bbs.domain.base.Result;
-import github.qiao712.bbs.domain.base.ResultStatus;
+import github.qiao712.bbs.domain.base.ResultCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
@@ -29,20 +29,21 @@ public class GlobalExceptionHandler {
             message.append(fieldError.getDefaultMessage());
             message.append(';');
         }
-        return Result.build(ResultStatus.ARGUMENT_NOT_VALID, message.toString());
+        return Result.build(ResultCode.INVALID_PARAM, message.toString());
     }
 
     @ResponseBody
     @ExceptionHandler(value = Throwable.class)
     public Result<Void> handleAnyException(Throwable e){
         if(e instanceof HttpRequestMethodNotSupportedException){
-            return Result.build(ResultStatus.METHOD_NOT_SUPPORTED, "不支持的Http方法");
+            return Result.build(ResultCode.METHOD_NOT_SUPPORTED);
         }else if(e instanceof AccessDeniedException){
-            return Result.build(ResultStatus.FORBIDDEN, "无权访问");
+            return Result.build(ResultCode.NO_PERMISSION, "无权访问");
         }
 
+        //记录未知错误
         log.error(e.getMessage(), e);
 
-        return Result.build(ResultStatus.ERROR, "请求处理失败");
+        return Result.build(ResultCode.FAILURE, "请求处理失败");
     }
 }

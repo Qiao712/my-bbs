@@ -5,14 +5,14 @@ spring:
   #  配置数据源
   datasource:
     username: root
-    password: lty0712
-    url: jdbc:mysql://114.116.245.83:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    password: 6830125245
+    url: jdbc:mysql://121.36.79.114:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis
   redis:
-    host: 114.116.245.83
-    password: lty0712
+    host: 121.36.79.114
+    password: 6830125245
     database: 0
 
   # 文件上传大小限制
@@ -25,7 +25,7 @@ spring:
 
   # Kafka
   kafka:
-    bootstrap-servers: 114.116.245.83:9092
+    bootstrap-servers: 121.36.79.114
     # producer 生产者配置
     producer:
       retries: 3  # 重试次数
@@ -79,9 +79,9 @@ sys:
   # 阿里云OOS配置
   aliOSS:
     endpoint: oss-cn-beijing.aliyuncs.com
-    accessKeyId: LTAI5tPWJhgitqKfhuPWrEfS
-    accessKeySecret: siBZmvrbPidl5nudvMqSZOZNOBdibS
-    bucket-name: qiao712-my-bbs
+    accessKeyId: LTAF7tPWJheitqLthupWRefS
+    accessKeySecret: siBZmvrbPid75nudvsqSZoZNOEdibS
+    bucket-name: bbs-test-bucket
 
   # ElasticSearch地址
   elastic-search:

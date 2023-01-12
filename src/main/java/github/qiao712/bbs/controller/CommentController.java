@@ -8,16 +8,13 @@ import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.entity.Comment;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.service.CommentService;
 import github.qiao712.bbs.service.LikeService;
-import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,7 +48,7 @@ public class CommentController {
     @PreAuthorize("isAuthenticated() and hasAuthority('comment:remove:mine')")
     public Result<Void> removeMyComment(@PathVariable("commentId") Long commentId, @AuthenticationPrincipal AuthUser currentUser){
         if(!commentService.isAuthor(commentId, currentUser.getId())){
-            throw new ServiceException("无权删除评论");
+            throw new ServiceException(ResultCode.NO_PERMISSION, "无权删除评论");
         }
         return Result.build(commentService.removeComment(commentId));
     }

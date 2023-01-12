@@ -7,8 +7,6 @@ import github.qiao712.bbs.exception.ServiceException;
 import lombok.Data;
 
 import javax.validation.constraints.Max;
-import javax.validation.constraints.NotBlank;
-import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -45,7 +43,7 @@ public class PageQuery {
      */
     public <T> IPage<T> getIPage(Set<String> columnsCanSorted, String defaultColumn, boolean defaultAsc){
         if(orderBy != null && !columnsCanSorted.contains(orderBy)){
-            throw new ServiceException("不允许按" + orderBy + "排序");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "不允许按" + orderBy + "排序");
         }
 
         Page<T> page = new Page<>();

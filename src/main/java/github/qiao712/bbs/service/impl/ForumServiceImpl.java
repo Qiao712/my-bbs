@@ -3,19 +3,17 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Forum;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.ForumMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.ForumService;
-import github.qiao712.bbs.util.FileUtil;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -61,7 +59,7 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
     @Override
     public boolean addForum(Forum forum) {
         if(getForumByName(forum.getName()) != null){
-            throw new ServiceException("同名板块已存在");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "同名板块已存在");
         }
 
         return forumMapper.insert(forum) > 0;
@@ -71,7 +69,7 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
     public boolean updateForum(Forum forum) {
         Forum forum2 = getForumByName(forum.getName());
         if(forum2 != null && !Objects.equals(forum.getId(), forum2.getId())){
-            throw new ServiceException("同名板块已存在");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "同名板块已存在");
         }
 
         return forumMapper.updateById(forum) > 0;
@@ -91,7 +89,7 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
         //限制图片来源
         FileIdentity fileIdentity = fileService.getFileIdentity(fileId);
         if(fileIdentity != null && !Objects.equals(fileIdentity.getSource(), FileService.FORUM_LOGO_IMAGE_FILE)){
-            throw new ServiceException("图片非法");
+            throw new ServiceException(ResultCode.INVALID_PARAM, "图片非法");
         }
 
         //释放原有图片
