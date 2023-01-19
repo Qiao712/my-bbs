@@ -2,8 +2,11 @@ package github.qiao712.bbs;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import github.qiao712.bbs.domain.dto.PostDto;
+import github.qiao712.bbs.domain.dto.message.PrivateMessageContent;
+import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
 import github.qiao712.bbs.domain.entity.Conversation;
 import github.qiao712.bbs.mapper.ConversationMapper;
+import github.qiao712.bbs.service.MessageService;
 import github.qiao712.bbs.util.HtmlUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +16,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,5 +93,12 @@ public class TestSomething {
         Object post_cache = redisTemplate.opsForValue().get("post_cache");
         System.out.println(post_cache);
         redisTemplate.delete("post_cache");
+    }
+
+    @Autowired
+    private MessageService messageService;
+    @Test
+    public void testRemoveMessage(){
+        messageService.removeMessages(null, null, ReplyMessageContent.class, Arrays.asList("120","121","122", "123"));
     }
 }

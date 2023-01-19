@@ -20,12 +20,15 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -33,6 +36,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
@@ -109,7 +113,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public void savePost(Post post) {
+    public void savePost(Post post) throws IOException {
         if(post == null || post.getId() == null) throw new ServiceException(ResultCode.INVALID_PARAM, "Post/Post.id 不可为空");
 
         //去除html样式
@@ -119,25 +123,26 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
         String postJson = toJSONString(post);
         IndexRequest request = new IndexRequest(POST_INDEX).id(post.getId().toString());
         request.source(postJson, XContentType.JSON);
-        try {
-            restClient.index(request, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            log.error("Post文档储存失败", e);
+        IndexResponse response = restClient.index(request, RequestOptions.DEFAULT);   //抛出IO错误
+
+        //response.getShardInfo().getSuccessful() 成功写入的分片数量
+        if(response.getShardInfo() == null || response.getShardInfo().getSuccessful() == 0){
+            throw new ServiceException(ResultCode.FAILURE, "Post文档储存失败");
         }
     }
 
     @Override
-    public void removePost(Long postId) {
+    public void removePost(Long postId) throws IOException {
         DeleteRequest request = new DeleteRequest(POST_INDEX, postId.toString());
-        try {
-            restClient.delete(request, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            log.error("Post文档删除失败", e);
+        DeleteResponse response = restClient.delete(request, RequestOptions.DEFAULT);
+
+        if(response.getShardInfo() == null || response.getShardInfo().getSuccessful() == 0){
+            throw new ServiceException(ResultCode.FAILURE, "Post文档删除失败");
         }
     }
 
     @Override
-    public void updatePost(Post post) {
+    public void updatePost(Post post) throws IOException {
         if(post == null || post.getId() == null) throw new ServiceException(ResultCode.INVALID_PARAM,"Post/Post.id 不可为空");
 
         UpdateRequest request = new UpdateRequest(POST_INDEX, post.getId().toString());
@@ -146,10 +151,9 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
         String postJson = JSON.toJSONString(post);
         request.doc(postJson, XContentType.JSON);
 
-        try {
-            restClient.update(request, RequestOptions.DEFAULT);
-        } catch (IOException e) {
-            log.error("Post文档更新失败", e);
+        UpdateResponse response = restClient.update(request, RequestOptions.DEFAULT);
+        if(response.getShardInfo() == null || response.getShardInfo().getSuccessful() == 0){
+            throw  new ServiceException(ResultCode.FAILURE, "Post文档更新失败");
         }
     }
 

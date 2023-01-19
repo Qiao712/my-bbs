@@ -5,51 +5,35 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.ConversationDto;
 import github.qiao712.bbs.domain.dto.PrivateMessageDto;
 import github.qiao712.bbs.domain.entity.Conversation;
 import github.qiao712.bbs.domain.entity.PrivateMessage;
 import github.qiao712.bbs.domain.entity.User;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.ConversationMapper;
 import github.qiao712.bbs.mapper.PrivateMessageMapper;
 import github.qiao712.bbs.mapper.UserMapper;
-import github.qiao712.bbs.mq.chat.ChatMessageSender;
 import github.qiao712.bbs.service.ChatService;
 import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
-import github.qiao712.bbs.websocket.ChatChannel;
-import github.qiao712.bbs.websocket.Response;
-import github.qiao712.bbs.websocket.ResponseType;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 @Service
-@Slf4j
 public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMessage> implements ChatService {
-    //用户ID --> websocket的session
-    private final ConcurrentMap<Long, ChatChannel> channels = new ConcurrentHashMap<>();
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
     @Autowired
     private PrivateMessageMapper privateMessageMapper;
     @Autowired
@@ -58,64 +42,23 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
     private UserMapper userMapper;
     @Autowired
     private UserService userService;
-    @Autowired
-    private ChatMessageSender chatMessageSender;
-    @Autowired
-    private SystemConfig systemConfig;
-
-    private static final String CHAT_CHANNELS_TABLE = "chat-channels";
 
     @Override
-    public void addChannel(ChatChannel channel){
-        ChatChannel oldChannel = channels.put(channel.getUserId(), channel);
-
-        //将旧连接下线
-        if(oldChannel != null){
-            try {
-                oldChannel.close();
-            } catch (IOException e) {
-                log.error("Websocket Close:", e);
-            }
-        }
-
-        //记录路由信息：将用户的连接在哪个服务上，记录在Redis中
-        redisTemplate.opsForHash().put(CHAT_CHANNELS_TABLE, channel.getUserId().toString(), systemConfig.getChatServerId());
-    }
-
-    @Override
-    public void removeChannel(ChatChannel channel){
-        //删除连接，要判断其是否已经被新的连接所替代
-        if(channels.remove(channel.getUserId(), channel)){
-            redisTemplate.opsForHash().delete(CHAT_CHANNELS_TABLE, channel.getUserId().toString());
-        }
-    }
-
-    @Override
-    @Transactional
-    public void receiveMessage(ChatChannel channel, PrivateMessageDto privateMessageDto) {
-        Long receiverId = privateMessageDto.getReceiverId();
-        Long senderId = channel.getUserId();
-
-        privateMessageDto.setSenderId(senderId);
-        privateMessageDto.setCreateTime(LocalDateTime.now());
+    public void sendMessage(Long receiverId, String content) {
+        Long senderId = SecurityUtil.getCurrentUser().getId();
 
         //检查参数
-        if(privateMessageDto.getContent().length() <= 0 || privateMessageDto.getContent().length() > 500){
-            throw new ServiceException(ResultCode.FAILURE, "消息长度不合法");
-        }
-        if(privateMessageDto.getType() != 1){
-            throw new ServiceException(ResultCode.FAILURE, "消息类型非法");
+        if(content.length() == 0 || content.length() > 500){
+            throw new ServiceException(ResultCode.MESSAGE_ERROR, "消息长度不合法");
         }
         if(receiverId == null) {
-             throw new ServiceException(ResultCode.FAILURE, "接收者不可为空");
+            throw new ServiceException(ResultCode.MESSAGE_ERROR, "接收者不可为空");
         }
         if(Objects.equals(receiverId, senderId)){
-            throw new ServiceException(ResultCode.FAILURE, "禁止向自己发送私信");
+            throw new ServiceException(ResultCode.MESSAGE_ERROR, "禁止向自己发送私信");
         }
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", receiverId);
-        if(!userMapper.exists(queryWrapper)){
-            throw new ServiceException(ResultCode.FAILURE, "目标用户不存在");
+        if(!userMapper.exists(new LambdaQueryWrapper<User>().eq(User::getId, receiverId))){
+            throw new ServiceException(ResultCode.MESSAGE_ERROR, "目标用户不存在");
         }
 
         //获取会话ID
@@ -131,13 +74,11 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
             conversationMapper.insert(conversation);
         }
 
-        //持久化消息
         PrivateMessage privateMessage = new PrivateMessage();
         privateMessage.setSenderId(senderId);
         privateMessage.setReceiverId(receiverId);
-        privateMessage.setContent(privateMessageDto.getContent());
-        privateMessage.setType(privateMessage.getType());
-        privateMessage.setCreateTime(privateMessageDto.getCreateTime());
+        privateMessage.setContent(content);
+        privateMessage.setType(1);
         privateMessage.setConversationId(conversation.getId());
         privateMessageMapper.insert(privateMessage);
 
@@ -145,29 +86,6 @@ public class ChatServiceImpl extends ServiceImpl<PrivateMessageMapper, PrivateMe
         conversation.setLastMessageId(privateMessage.getId());
         conversation.setLastMessageTime(privateMessage.getCreateTime());
         conversationMapper.updateById(conversation);
-
-        //先尝试通过本地的WebSocket连接发送。
-        if(!sendMessage(privateMessageDto)){
-            //接收者的连接不在该节点上，从Redis中查找用户在哪个节点上
-            String chatServerId = (String) redisTemplate.opsForHash().get(CHAT_CHANNELS_TABLE, receiverId.toString());
-            if(chatServerId != null){
-                //通过消息队列，转发到接收者所在节点
-                chatMessageSender.sendPrivateMessage(chatServerId, privateMessageDto);
-            }
-        }
-    }
-
-    @Override
-    public boolean sendMessage(PrivateMessageDto privateMessageDto) {
-        //转发给接收者
-        ChatChannel receiverChannel = channels.get(privateMessageDto.getReceiverId());
-        if(receiverChannel != null) {
-            privateMessageDto.setSenderId(privateMessageDto.getSenderId());
-            receiverChannel.send(new Response(ResponseType.PRIVATE_MESSAGE.ordinal(), privateMessageDto));
-            return true;
-        }
-
-        return false;
     }
 
     @Override

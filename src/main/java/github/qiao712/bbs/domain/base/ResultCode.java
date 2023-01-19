@@ -21,6 +21,9 @@ public enum ResultCode {
     COMMENT_ERROR(30001, "评论操作错误"),
     POST_ERROR(30002, "贴子操作错误"),
 
+    //消息服务错误
+    MESSAGE_ERROR(40001, "消息错误"),
+
     //文件服务错误
     FILE_ERROR(50001, "文件操作错误"),
     UPLOAD_ERROR(50002, "上传失败"),

@@ -4,21 +4,23 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.entity.Post;
 
+import java.io.IOException;
+
 public interface SearchService {
     /**
      * 将贴子存入索引库
      */
-    void savePost(Post post);
+    void savePost(Post post) throws IOException;
 
     /**
      * 将贴子从索引库中删除
      */
-    void removePost(Long postId);
+    void removePost(Long postId) throws IOException;
 
     /**
      * 修改贴子
      */
-    void updatePost(Post post);
+    void updatePost(Post post) throws IOException;
 
     /**
      * 获取贴子文档

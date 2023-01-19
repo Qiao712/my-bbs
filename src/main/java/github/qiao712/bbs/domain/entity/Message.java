@@ -20,8 +20,8 @@ public class Message extends BaseEntity {
 
     private Long receiverId;
 
-    @ApiModelProperty("用于表示两个用户间的会话，用于获取会话列表时groupBy.sender_id和receiver_id中，较大的放在高8字节，较小的放在低8字节。")
-    private byte[] conversationId;
+    @ApiModelProperty("用于快速查找消息, 不同类型具有不同含义(例如:找到通过评论id找到其提示消息,以删除或修改)")
+    private String messageKey;
 
     @ApiModelProperty("消息类型")
     private String type;

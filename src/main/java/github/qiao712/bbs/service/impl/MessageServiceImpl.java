@@ -2,29 +2,21 @@ package github.qiao712.bbs.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.base.PageQuery;
-import github.qiao712.bbs.domain.dto.ConversationDto;
 import github.qiao712.bbs.domain.dto.MessageDto;
 import github.qiao712.bbs.domain.dto.message.MessageContent;
 import github.qiao712.bbs.domain.dto.message.MessageType;
-import github.qiao712.bbs.domain.dto.message.PrivateMessageContent;
 import github.qiao712.bbs.domain.entity.Message;
-import github.qiao712.bbs.domain.entity.User;
-import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.MessageMapper;
-import github.qiao712.bbs.mapper.UserMapper;
 import github.qiao712.bbs.service.MessageService;
-import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,16 +28,28 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private MessageMapper messageMapper;
 
     @Override
-    public boolean sendMessage(Long senderId, Long receiverId, MessageContent content) {
+    public boolean sendMessage(Long senderId, Long receiverId, String key, MessageContent content) {
         Message message = new Message();
         message.setContent(JSON.toJSONString(content));
         message.setSenderId(senderId);
         message.setReceiverId(receiverId);
+        message.setMessageKey(key);
         message.setType(getMessageType(content.getClass()));
         message.setIsAcknowledged(false);
 
         return messageMapper.insert(message) > 0;
     }
+
+    @Override
+    public boolean removeMessages(Long senderId, Long receiverId, Class<? extends MessageContent> type, List<String> keys) {
+        LambdaQueryWrapper<Message> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(receiverId!=null,Message::getReceiverId, receiverId)
+                    .eq(senderId!=null, Message::getSenderId, senderId)
+                    .eq(type!=null, Message::getType, getMessageType(type))
+                    .in(keys != null && !keys.isEmpty(), Message::getMessageKey, keys);
+        return messageMapper.delete(queryWrapper) > 0;
+    }
+
 
     @Override
     public Long getUnacknowledgedSystemMessageCount() {

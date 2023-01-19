@@ -6,31 +6,15 @@ import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.ConversationDto;
 import github.qiao712.bbs.domain.dto.PrivateMessageDto;
 import github.qiao712.bbs.domain.entity.PrivateMessage;
-import github.qiao712.bbs.websocket.ChatChannel;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ChatService extends IService<PrivateMessage> {
     /**
-     * 记录一个连接
+     * 发送消息
      */
-    void addChannel(ChatChannel chatChannel);
-
-    /**
-     * 移除一个连接
-     */
-    void removeChannel(ChatChannel channel);
-
-    /**
-     * 处理接收到的消息
-     */
-    void receiveMessage(ChatChannel channel, PrivateMessageDto privateMessageDto);
-
-    /**
-     * 将消息通过该节点持有的WebSocket连接发送给指定用户
-     */
-    boolean sendMessage(PrivateMessageDto privateMessageDto);
+    void sendMessage(Long receiverId, String content);
 
     /**
      * 列出会话列表

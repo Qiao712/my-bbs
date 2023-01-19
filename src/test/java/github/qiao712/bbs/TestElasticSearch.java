@@ -58,12 +58,12 @@ public class TestElasticSearch {
     }
 
     @Test
-    public void testDeletePostDoc(){
+    public void testDeletePostDoc() throws IOException {
         searchService.removePost(1L);
     }
 
     @Test
-    public void testUpdatePostDoc(){
+    public void testUpdatePostDoc() throws IOException {
         Post post = new Post();
         post.setId(1L);
 //        post.setContent("<p>Hello, wowowow<p/>");

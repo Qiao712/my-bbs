@@ -1,21 +1,24 @@
 package github.qiao712.bbs.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
+import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
 import github.qiao712.bbs.domain.entity.*;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.mq.comment.CommentMessageSender;
+import github.qiao712.bbs.mq.MessageSender;
+import github.qiao712.bbs.mq.MessageType;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
@@ -48,7 +51,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private SystemConfig systemConfig;
     @Autowired
-    private CommentMessageSender commentMessageSender;
+    private MessageSender messageSender;
+    @Autowired
+    private MessageService messageService;
 
     @Override
     public boolean addComment(Comment comment) {
@@ -111,7 +116,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         postMapper.increaseCommentCount(comment.getPostId(), 1L);
 
         //发送评论/回复消息
-        commentMessageSender.sendCommentAddMessage(comment);
+        messageSender.sendMessageSync(MessageType.COMMENT_ADD, comment.getId().toString(), comment);
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());
@@ -184,16 +189,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public boolean removeComment(Long commentId) {
         Comment comment = commentMapper.selectById(commentId);
         if(comment == null) return false;
-        long deletedCommentCount = 0;
 
-        if(comment.getParentId() == null){
-            //该评论为一级评论
-            //删除子评论
-            Comment commentQuery = new Comment();
-            commentQuery.setParentId(commentId);
-            deletedCommentCount += commentMapper.delete(new QueryWrapper<>(commentQuery));
+        List<Long> commentsToDelete = new ArrayList<>();
+        if(comment.getParentId() == null){  //该评论为一级评论
+            //需要删除的子评论
+            LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.select(Comment::getId).eq(Comment::getParentId, commentId);
+            commentsToDelete = commentMapper.selectList(queryWrapper).stream().map(Comment::getId).collect(Collectors.toList());
 
-            //引用计数减
+            //图片等文件的引用计数减
             List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getPostId(), comment.getId());
             if(!attachmentFileIds.isEmpty())
                 fileService.increaseReferenceCount(attachmentFileIds, -1);
@@ -203,21 +207,24 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             attachmentQuery.setPostId(comment.getPostId());
             attachmentQuery.setCommentId(comment.getId());
             attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
-        }else{
-            //二级评论(二级评论无需)
+        }else{  //二级评论(二级评论无图片)
             //删除回复其的评论
-            Comment commentQuery = new Comment();
-            commentQuery.setRepliedId(commentId);
-            deletedCommentCount += commentMapper.delete(new QueryWrapper<>(commentQuery));
+            LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.select(Comment::getId).eq(Comment::getRepliedId, commentId);
+            commentsToDelete = commentMapper.selectList(queryWrapper).stream().map(Comment::getId).collect(Collectors.toList());
         }
+        commentsToDelete.add(commentId);
 
         //更新评论数量
-        postMapper.increaseCommentCount(comment.getPostId(), -deletedCommentCount - 1);
+        postMapper.increaseCommentCount(comment.getPostId(), (long) - commentsToDelete.size());
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());
 
-        return commentMapper.deleteById(commentId) > 0;
+        //删除提示消息
+        messageService.removeMessages(null, null, ReplyMessageContent.class, commentsToDelete.stream().map(String::valueOf).collect(Collectors.toList()));
+
+        return commentMapper.deleteBatchIds(commentsToDelete) > 0;
     }
 
     @Override

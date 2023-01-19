@@ -7,16 +7,17 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.entity.*;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.mq.post.PostMessageSender;
+import github.qiao712.bbs.mq.MessageSender;
+import github.qiao712.bbs.mq.MessageType;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
@@ -56,7 +57,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private StatisticsService statisticsService;
     @Autowired
-    private PostMessageSender postMessageSender;
+    private MessageSender messageSender;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -106,7 +107,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         //发布添加事件，以同步至ElasticSearch
-        postMessageSender.sendPostAddMessage(post);
+        messageSender.sendMessageSync(MessageType.POST_ADD, post.getId().toString(), post);
         return true;
     }
 
@@ -185,7 +186,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         if(postMapper.deleteById(postId) > 0){
             //发布删除事件，以同步至ElasticSearch
-            postMessageSender.sendPostDeleteMessage(postId);
+            messageSender.sendMessageSync(MessageType.POST_DELETE, postId.toString(), postId);
 
             //清除缓存
             redisTemplate.delete(POST_CACHE_KEY_PREFIX+postId);
