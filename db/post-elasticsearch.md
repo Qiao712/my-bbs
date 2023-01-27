@@ -1,4 +1,4 @@
-### 索引库mapping
+# post 文档的约束
 ```json
 {
     "mappings":{

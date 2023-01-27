@@ -3,34 +3,34 @@ package github.qiao712.bbs.exception;
 import github.qiao712.bbs.domain.base.ResultCode;
 
 public class ServiceException extends RuntimeException{
-    private final int errorCode;
+    private final ResultCode errorCode;
 
-    public int getErrorCode() {
+    public ResultCode getErrorCode() {
         return errorCode;
     }
 
-    public ServiceException(ResultCode resultCode) {
-        super(resultCode.getDefaultMessage());
-        this.errorCode = resultCode.getCode();
+    public ServiceException(ResultCode errorCode) {
+        super(errorCode.getDefaultMessage());
+        this.errorCode = errorCode;
     }
 
-    public ServiceException(ResultCode resultCode, String message) {
+    public ServiceException(ResultCode errorCode, String message) {
         super(message);
-        this.errorCode = resultCode.getCode();
+        this.errorCode = errorCode;
     }
 
-    public ServiceException(ResultCode resultCode, String message, Throwable cause) {
+    public ServiceException(ResultCode errorCode, String message, Throwable cause) {
         super(message, cause);
-        this.errorCode = resultCode.getCode();
+        this.errorCode = errorCode;
     }
 
-    public ServiceException(ResultCode resultCode, Throwable cause) {
+    public ServiceException(ResultCode errorCode, Throwable cause) {
         super(cause);
-        this.errorCode = resultCode.getCode();
+        this.errorCode = errorCode;
     }
 
-    public ServiceException(ResultCode resultCode, String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public ServiceException(ResultCode errorCode, String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
-        this.errorCode = resultCode.getCode();
+        this.errorCode = errorCode;
     }
 }

@@ -17,7 +17,11 @@ public class GlobalExceptionHandler {
     @ResponseBody
     @ExceptionHandler(value = ServiceException.class)
     public Result<Void> handleServiceException(ServiceException serviceException){
-        return Result.fail(serviceException.getMessage());
+        if (serviceException.getCause() != null){
+            log.error(serviceException.getMessage(), serviceException.getCause());
+        }
+
+        return Result.build(serviceException.getErrorCode(), serviceException.getMessage());
     }
 
     @ResponseBody

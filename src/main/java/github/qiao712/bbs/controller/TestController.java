@@ -18,4 +18,9 @@ public class TestController {
         likeService.syncPostLikeCount();
         return Result.succeed();
     }
+
+    public int test(){
+        System.out.println("----Quartz...----");
+        return 1;
+    }
 }

@@ -27,7 +27,9 @@ public enum ResultCode {
     //文件服务错误
     FILE_ERROR(50001, "文件操作错误"),
     UPLOAD_ERROR(50002, "上传失败"),
-    ;
+
+    //定时任务错误
+    JOB_ERROR(60001, "定时任务错误");
 
     /**
      * 错误码
