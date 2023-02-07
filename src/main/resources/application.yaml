@@ -89,3 +89,9 @@ sys:
       - localhost:9200
     username: elastic
     password: 78787855
+
+  # 系统缓存设置
+  cache:
+    post-cache-valid-time: 60           #60s
+    post-id-list-cache-max-length: 100
+

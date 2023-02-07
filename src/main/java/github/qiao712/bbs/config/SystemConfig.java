@@ -92,7 +92,15 @@ public class SystemConfig {
     private AliOSS aliOSS;
 
     /**
-     * 该进程标识，用于支持聊天服务的水平拓展。消息根据该id路由到目标用户所在的节点。
+     * 缓存相关配置
      */
-    private String chatServerId;
+    @Data
+    private static class Cache{
+        //单个贴子缓存的有效时间
+        private int postCacheValidTime;
+        //缓存的贴子id列表的最大长度
+        private int postIdListCacheMaxLength;
+    }
+
+    private Cache cache;
 }

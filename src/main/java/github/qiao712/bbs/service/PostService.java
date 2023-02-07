@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Post;
-import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Collection;
+import java.util.List;
 
 public interface PostService extends IService<Post> {
 
@@ -14,6 +16,8 @@ public interface PostService extends IService<Post> {
     PostDto getPost(Long postId);
 
     IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId);
+
+    List<PostDto> listPosts(Collection<Long> postIds);
 
     IPage<PostDto> searchPosts(PageQuery pageQuery, String text, Long forumId, Long authorId);
 

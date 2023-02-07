@@ -2,6 +2,7 @@ package github.qiao712.bbs.service.impl;
 
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.internal.OSSHeaders;
 import com.aliyun.oss.model.*;
@@ -39,7 +40,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity> implements FileService, InitializingBean {
-    @Autowired
     private OSS ossClient;
     @Autowired
     private FileMapper fileMapper;
@@ -54,8 +54,14 @@ public class AliOSSFileServiceImpl extends ServiceImpl<FileMapper, FileIdentity>
     //初始化配置
     @Override
     public void afterPropertiesSet() throws Exception {
-        this.bucketName = systemConfig.getAliOSS().getBucketName();
+        //Bucket所在地域对应的Endpoint
         this.endpoint = systemConfig.getAliOSS().getEndpoint();
+        this.bucketName = systemConfig.getAliOSS().getBucketName();
+        String accessKeyId = systemConfig.getAliOSS().getAccessKeyId();
+        String accessKeySecret = systemConfig.getAliOSS().getAccessKeySecret();
+
+        // 创建OSSClient实例
+        ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
     }
 
     @Override
