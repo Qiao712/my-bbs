@@ -1,10 +1,13 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import github.qiao712.bbs.config.Constant;
 import github.qiao712.bbs.domain.base.ResultCode;
+import github.qiao712.bbs.domain.entity.Forum;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.service.ForumService;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,19 +29,14 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Autowired
     private PostMapper postMapper;
     @Autowired
+    private ForumService forumService;
+    @Autowired
     private LikeService likeService;
-
-    //需要需要刷新热度分数的贴子
-    private final String POST_SCORE_REFRESH_TABLE = "post_to_refresh";
-    //浏览量统计
-    private final String POST_VIEW_COUNT_TABLE = "post_view_counts";
-    //用于计算贴子发布时间
-    private final LocalDateTime POST_EPOCH = LocalDateTime.of(2022, 7,12,0,0,0);
 
     @Override
     public void increasePostViewCount(long postId) {
         try{
-            redisTemplate.opsForHash().increment(POST_VIEW_COUNT_TABLE, String.valueOf(postId), 1);
+            redisTemplate.opsForHash().increment(Constant.POST_VIEW_COUNT_TABLE, String.valueOf(postId), 1);
         }catch (RuntimeException e){
             //捕获所有异常防止其影响贴子的获取
             log.error("贴子浏览量增加失败", e);
@@ -48,7 +46,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Override
     public void markPostToFreshScore(long postId) {
         try {
-            redisTemplate.opsForSet().add(POST_SCORE_REFRESH_TABLE, String.valueOf(postId));
+            redisTemplate.opsForSet().add(Constant.POST_SCORE_REFRESH_TABLE, String.valueOf(postId));
         }catch (RuntimeException e){
             log.error("标记贴子热度分值需要更新失败", e);
         }
@@ -67,7 +65,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             postKeys.add(postId.toString());
         }
         HashOperations<String, String, String> hashOps = redisTemplate.opsForHash();
-        List<String> viewCountDeltas = hashOps.multiGet(POST_VIEW_COUNT_TABLE, postKeys);
+        List<String> viewCountDeltas = hashOps.multiGet(Constant.POST_VIEW_COUNT_TABLE, postKeys);
         if(viewCounts.size() != viewCountDeltas.size()){
             throw new RuntimeException("从Redis中获取浏览量失败");
         }
@@ -89,7 +87,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         final int BATCH_SIZE = 1000;    //收集多少条插入一次数据库
         List<Map.Entry<String, String>> entries = new ArrayList<>(BATCH_SIZE);
 
-        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(POST_VIEW_COUNT_TABLE);
+        BoundHashOperations<String, String, String> hashOps = redisTemplate.boundHashOps(Constant.POST_VIEW_COUNT_TABLE);
         try(Cursor<Map.Entry<String, String>> cursor = hashOps.scan(ScanOptions.scanOptions().count(BATCH_SIZE).build())){  //scan
             //收集一批
             while(cursor.hasNext()){
@@ -119,7 +117,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
         final int BATCH_SIZE = 1000;
         List<Long> postIds = new ArrayList<>(BATCH_SIZE);
-        BoundSetOperations<String, String> setOps = redisTemplate.boundSetOps(POST_SCORE_REFRESH_TABLE);
+        BoundSetOperations<String, String> setOps = redisTemplate.boundSetOps(Constant.POST_SCORE_REFRESH_TABLE);
 
         try(Cursor<String> cursor = setOps.scan(ScanOptions.scanOptions().count(BATCH_SIZE).build())){
             if(cursor == null) {
@@ -145,6 +143,12 @@ public class StatisticsServiceImpl implements StatisticsService {
             }
         }
 
+        //重置按热度缓存的热度列表
+        List<Forum> forums = forumService.list();
+        for (Forum forum : forums) {
+            redisTemplate.delete(Constant.POST_LIST_BY_SCORE_KEY_PREFIX + forum.getId());
+        }
+
         log.info("贴子热度刷新: 完成");
     }
 
@@ -152,7 +156,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     public Long computePostScore(long likeCount, long commentCount, long viewCount, LocalDateTime createTime){
         //10个赞可以相当于1分钟
         //2个评论可以相当于1分钟
-        return likeCount/10L + commentCount/2L + viewCount/30L + Duration.between(POST_EPOCH, createTime).toMinutes();
+        return likeCount/10L + commentCount/2L + viewCount/30L + Duration.between(Constant.POST_EPOCH, createTime).toMinutes();
     }
 
     /**
@@ -177,5 +181,16 @@ public class StatisticsServiceImpl implements StatisticsService {
             Long score = computePostScore(likeService.getPostLikeCount(post.getId()), post.getCommentCount(), post.getViewCount(), post.getCreateTime());
             postMapper.updateScore(post.getId(), score);
         }
+    }
+
+    @Override
+    public void markUserActive(Long userId) {
+        redisTemplate.opsForValue().setBit(Constant.USER_ACTIVE_BITMAP, userId, true);
+    }
+
+    @Override
+    public boolean isActiveUser(Long userId) {
+        Boolean flag = redisTemplate.opsForValue().getBit(Constant.USER_ACTIVE_BITMAP, userId);
+        return flag != null && flag;
     }
 }

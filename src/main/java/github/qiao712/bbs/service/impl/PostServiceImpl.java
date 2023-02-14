@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.SystemConfig;
+import github.qiao712.bbs.config.Constant;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
@@ -25,6 +25,7 @@ import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.BoundZSetOperations;
 import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -60,13 +62,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private StatisticsService statisticsService;
     @Autowired
     private MessageSender messageSender;
+    @Autowired
+    private Executor executor;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
-
-    private static final String POST_CACHE_KEY_PREFIX = "post-";
-    private static final String POST_LIST_BY_TIME_KEY_PREFIX = "post-list-time-";          //按时间排序的贴子列表缓存
-    private static final String POST_LIST_BY_SCORE_KEY_PREFIX = "post-list-score-";        //按热度排序的贴子列表缓存
 
     @Value("${sys.max-post-image-num}")
     private int maxPostImageNum = 20;                //贴子中图片数量上限
@@ -93,13 +93,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         //缓存到按时间排序的列表中
-        String key = POST_LIST_BY_TIME_KEY_PREFIX + post.getForumId();
+        String key = Constant.POST_LIST_BY_TIME_KEY_PREFIX + post.getForumId();
         redisTemplate.opsForZSet().add(key, post.getId().toString(), System.currentTimeMillis());
-        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-1);  //只缓存前几页，移除旧的ID
+        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-2);  //只保留前maxLength+1个id(包括一个-1标记)
         //缓存到按热度排序的表中
-        key = POST_LIST_BY_SCORE_KEY_PREFIX + post.getForumId();
+        key = Constant.POST_LIST_BY_SCORE_KEY_PREFIX + post.getForumId();
         redisTemplate.opsForZSet().add(key, post.getId().toString(), post.getScore());
-        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-1);  //只缓存前几页，移除旧的ID
+        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-2);  //只保留前maxLength+1个id(包括一个-1标记)
 
         //解析出引用的图片
         List<String> urls = HtmlUtil.getImageUrls(post.getContent());
@@ -137,7 +137,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         statisticsService.markPostToFreshScore(postId);
 
         //先从缓存中取出Post
-        String postKey = POST_CACHE_KEY_PREFIX + postId;
+        String postKey = Constant.POST_KEY_PREFIX + postId;
         String postDtoJson = redisTemplate.opsForValue().get(postKey);
         if(postDtoJson != null){
             PostDto postDto = JSON.parseObject(postDtoJson, PostDto.class);
@@ -159,8 +159,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId) {
-        int end = pageQuery.getPageNo() * pageQuery.getPageSize();                              //最后的rank(不包括) (pageNo从1开始)
-        int start = end - pageQuery.getPageSize();
+        int end = pageQuery.getPageNo() * pageQuery.getPageSize();                              //1 Index
+        int start = end - pageQuery.getPageSize() + 1;
         boolean isAsc = "asc".equalsIgnoreCase(pageQuery.getOrder());                           //默认降序
         String orderBy = pageQuery.getOrderBy() != null ? pageQuery.getOrderBy() : "score";     //默认按热度排序
         if(!columnsCanSorted.contains(orderBy)){
@@ -171,30 +171,33 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         List<PostDto> postDtos = null;
         if(end <= cachedPostListMaxLength && authorId == null && forumId != null && !isAsc){
             //按热度或时间排序
-            String key = "create_time".equals(pageQuery.getOrderBy()) ? POST_LIST_BY_TIME_KEY_PREFIX + forumId : POST_LIST_BY_SCORE_KEY_PREFIX + forumId;
-            Set<String> postIds = redisTemplate.opsForZSet().reverseRange(key, start, end - 1);
+            String key = "create_time".equals(pageQuery.getOrderBy()) ? Constant.POST_LIST_BY_TIME_KEY_PREFIX + forumId : Constant.POST_LIST_BY_SCORE_KEY_PREFIX + forumId;
+            BoundZSetOperations<String, String> zset = redisTemplate.boundZSetOps(key);
 
-            if(postIds != null && !postIds.isEmpty()){
-                postDtos = listPosts(postIds.stream().map(Long::valueOf).collect(Collectors.toList()));
-            }else{
-                //构建id列表缓存
-                LambdaQueryWrapper<Post> postIdQueryWrapper = new LambdaQueryWrapper<>();
-                postIdQueryWrapper.select(Post::getId, Post::getCreateTime);
-                postIdQueryWrapper.eq(Post::getForumId, forumId);
-                postIdQueryWrapper.orderBy(true, false, orderBy.equals("create_time") ? Post::getCreateTime : Post::getScore);
-                postIdQueryWrapper.last("limit " + cachedPostListMaxLength);
-                List<Post> posts = postMapper.selectList(postIdQueryWrapper);
+            if(zset.score("-1") == null){
+                //缓存列表中无标记-1，表示缓存未初始化(未从数据库中读取过前几页的列表并加入缓存)
+                executor.execute(()->{
+                    LambdaQueryWrapper<Post> postIdQueryWrapper = new LambdaQueryWrapper<>();
+                    postIdQueryWrapper.select(Post::getId, Post::getCreateTime);
+                    postIdQueryWrapper.eq(Post::getForumId, forumId);
+                    postIdQueryWrapper.orderBy(true, false, orderBy.equals("create_time") ? Post::getCreateTime : Post::getScore);
+                    postIdQueryWrapper.last("limit " + cachedPostListMaxLength);
+                    List<Post> posts = postMapper.selectList(postIdQueryWrapper);
 
-                if(!posts.isEmpty()){
                     Set<ZSetOperations.TypedTuple<String>> tuples = posts.stream().map(post -> {
                         long timestamp = post.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();    //贴子创建时间戳
                         return new DefaultTypedTuple<>(post.getId().toString(), (double) timestamp);
                     }).collect(Collectors.toSet());
-                    redisTemplate.opsForZSet().add(key, tuples);
-                }else{
-                    //若为空，添加一个-1进行占位，避免下次再查数据库构建缓存
-                    redisTemplate.opsForZSet().add(key, "-1", 0);
-                }
+
+                    //添加一个score=MAX_VALUE的标记“-1”
+                    tuples.add(new DefaultTypedTuple<>("-1", Double.MAX_VALUE));
+
+                    zset.add(tuples);
+                });
+            }else{
+                //缓存命中
+                Set<String> postIds = zset.reverseRange(start, end);
+                if(postIds != null) postDtos = listPosts(postIds.stream().map(Long::valueOf).collect(Collectors.toList()));
             }
         }
 
@@ -222,7 +225,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //优先从缓存中取
         List<PostDto> cachedPostDtos = null;
-        List<String> postJsons = redisTemplate.opsForValue().multiGet(postIds.stream().map(String::valueOf).collect(Collectors.toList()));
+        List<String> postJsons = redisTemplate.opsForValue().multiGet(postIds.stream().map(id->Constant.POST_KEY_PREFIX +id).collect(Collectors.toList()));
         if(postJsons != null){
             cachedPostDtos = postJsons.stream().filter(Objects::nonNull).map(postJson -> JSON.parseObject(postJson, PostDto.class)).collect(Collectors.toList());
         }
@@ -248,30 +251,27 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             List<Long> uncachedPostIds = postIds.stream().filter(cachedPostIds::contains).collect(Collectors.toList());
             uncachedPosts = postMapper.selectBatchIds(uncachedPostIds);
         }
-        //聚合其他信息，转为postDtos
-        List<PostDto> uncachedPostDtos = convertToPostDtos(uncachedPosts);
+        List<PostDto> uncachedPostDtos = convertToPostDtos(uncachedPosts);  //聚合其他信息，转为postDtos
 
         //按postIds的顺序，进行整理
         Map<Long, PostDto> postDtoMap = new HashMap<>(postIds.size());
         if(cachedPostDtos != null){
-            for (PostDto postDto : cachedPostDtos) {
+            for (PostDto postDto : cachedPostDtos)
                 postDtoMap.put(postDto.getId(), postDto);
-            }
         }
         if(uncachedPosts != null){
-            for (PostDto postDto : uncachedPostDtos) {
+            for (PostDto postDto : uncachedPostDtos)
                 postDtoMap.put(postDto.getId(), postDto);
-            }
         }
         List<PostDto> postDtos = postIds.stream().map(postDtoMap::get).filter(Objects::nonNull).collect(Collectors.toList());
 
-        //加入缓存
-        //TODO: 异步
-        if(uncachedPosts != null){
-            for (Post uncachedPost : uncachedPosts) {
-                redisTemplate.opsForValue().set(POST_CACHE_KEY_PREFIX+uncachedPost.getId(), JSON.toJSONString(uncachedPost), postCacheValidTime, TimeUnit.SECONDS);
+        //异步加入缓存
+        executor.execute(()->{
+            for (PostDto postDto : uncachedPostDtos) {
+                redisTemplate.opsForValue().set(Constant.POST_KEY_PREFIX +postDto.getId(), JSON.toJSONString(postDto), postCacheValidTime, TimeUnit.SECONDS);
             }
-        }
+        });
+
         return postDtos;
     }
 
@@ -314,9 +314,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             messageSender.sendMessageSync(MessageType.POST_DELETE, postId.toString(), postId);
 
             //清除缓存
-            redisTemplate.delete(POST_CACHE_KEY_PREFIX+postId);
-            redisTemplate.opsForZSet().remove(POST_LIST_BY_SCORE_KEY_PREFIX+post.getForumId(), postId.toString());
-            redisTemplate.opsForZSet().remove(POST_LIST_BY_TIME_KEY_PREFIX+post.getForumId(), postId.toString());
+            redisTemplate.delete(Constant.POST_KEY_PREFIX +postId);
+            redisTemplate.opsForZSet().remove(Constant.POST_LIST_BY_SCORE_KEY_PREFIX+post.getForumId(), postId.toString());
+            redisTemplate.opsForZSet().remove(Constant.POST_LIST_BY_TIME_KEY_PREFIX+post.getForumId(), postId.toString());
             return true;
         }
 
@@ -383,5 +383,29 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         postDto.setLikeCount(likeService.getPostLikeCount(postDto.getId()));
         postDto.setLiked(currentUserId == null ? null : likeService.hasLikedPost(postDto.getId(), currentUserId));  //当前用户是否点赞
         return postDto;
+    }
+
+    /**
+     * 初始化某板块按时间/热度排序的贴子id列表缓存
+     * 从数据库中读取前n行id，并缓存
+     */
+    private void initIdListCache(Long forumId, String orderBy){
+        LambdaQueryWrapper<Post> postIdQueryWrapper = new LambdaQueryWrapper<>();
+        postIdQueryWrapper.select(Post::getId, Post::getCreateTime);
+        postIdQueryWrapper.eq(Post::getForumId, forumId);
+        postIdQueryWrapper.orderBy(true, false, orderBy.equals("create_time") ? Post::getCreateTime : Post::getScore);
+        postIdQueryWrapper.last("limit " + cachedPostListMaxLength);
+        List<Post> posts = postMapper.selectList(postIdQueryWrapper);
+
+        Set<ZSetOperations.TypedTuple<String>> tuples = posts.stream().map(post -> {
+            long timestamp = post.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();    //贴子创建时间戳
+            return new DefaultTypedTuple<>(post.getId().toString(), (double) timestamp);
+        }).collect(Collectors.toSet());
+
+        //无法填满，则填充负数
+
+
+        String key = ("create_time".equals(orderBy) ? Constant.POST_LIST_BY_TIME_KEY_PREFIX: Constant.POST_LIST_BY_SCORE_KEY_PREFIX) +  + forumId;
+        redisTemplate.opsForZSet().add(key, tuples);
     }
 }

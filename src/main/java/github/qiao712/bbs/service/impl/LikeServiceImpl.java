@@ -1,6 +1,7 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import github.qiao712.bbs.config.Constant;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.entity.CommentLike;
 import github.qiao712.bbs.domain.entity.PostLike;
@@ -61,17 +62,13 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         "end", Long.class
     );
 
-    private final static String POST_LIKE_COUNT_TABLE = "post-like-count-table";
-    private final static String COMMENT_LIKE_COUNT_TABLE = "comment-like-count-table";
-
     /**
-     * 将上面这些hash表拆，每个都解为TABLE_NUM个，将编号以后缀的形式加上。
+     * 将上面这些hash表拆，每个都解为LIKE_COUNT_TABLE_NUM个，将编号以后缀的形式加上。
      * 操作时，通过postId 或 commentId 路由到某个表
      * 将Redis中大的hash表拆成若干个小的，方便同步
      */
-    private final static int TABLE_NUM = 10;
     private String getTableName(Long id, String table){
-        return table + "-" + id%TABLE_NUM;
+        return table + "-" + id% Constant.LIKE_COUNT_TABLE_NUM;
     }
 
     //Post-----------------------------------------------------------
@@ -94,7 +91,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         postLikeMapper.insert(postLike);
 
         //路由到某张表
-        String postLikeCountTable = getTableName(postId, POST_LIKE_COUNT_TABLE);
+        String postLikeCountTable = getTableName(postId, Constant.POST_LIKE_COUNT_TABLE);
 
         for(int i = 0; i < 10; i++){    //重试次数
             //若存在缓存的值则增/减
@@ -123,7 +120,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     @Override
     public Long getPostLikeCount(Long postId) {
         //优先从缓存中获取
-        String postLikeCountTable = getTableName(postId, POST_LIKE_COUNT_TABLE); //路由到某张表
+        String postLikeCountTable = getTableName(postId, Constant.POST_LIKE_COUNT_TABLE); //路由到某张表
         String value = (String) stringRedisTemplate.opsForHash().get(postLikeCountTable, postId.toString());
         return value != null ? Long.parseLong(value) : postMapper.selectLikeCount(postId);
     }
@@ -135,8 +132,8 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         final int BATCH_SIZE = 1000;
 
-        for(int i = 0; i < TABLE_NUM; i++) {
-            String postLikeCountTable = POST_LIKE_COUNT_TABLE + "-" + i;
+        for(int i = 0; i < Constant.LIKE_COUNT_TABLE_NUM; i++) {
+            String postLikeCountTable = Constant.POST_LIKE_COUNT_TABLE + "-" + i;
             BoundHashOperations<String, String, String> hashOps = stringRedisTemplate.boundHashOps(postLikeCountTable);
 
             //scan
@@ -180,7 +177,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         commentLikeMapper.insert(commentLike);
 
         //路由到某张表
-        String commentLikeCountTable = getTableName(commentId, COMMENT_LIKE_COUNT_TABLE);
+        String commentLikeCountTable = getTableName(commentId, Constant.COMMENT_LIKE_COUNT_TABLE);
 
         for(int i = 0; i < 10; i++){    //重试次数
             //若存在缓存的值则增/减
@@ -207,7 +204,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     @Override
     public Long getCommentLikeCount(Long commentId) {
         //优先从缓存中获取
-        String commentLikeCountTable = getTableName(commentId, COMMENT_LIKE_COUNT_TABLE); //路由到某张表
+        String commentLikeCountTable = getTableName(commentId, Constant.COMMENT_LIKE_COUNT_TABLE); //路由到某张表
         String value = (String) stringRedisTemplate.opsForHash().get(commentLikeCountTable, commentId.toString());
         return value != null ? Long.parseLong(value) : commentMapper.selectLikeCount(commentId);
     }
@@ -219,8 +216,8 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         final int BATCH_SIZE = 1000;
 
-        for(int i = 0; i < TABLE_NUM; i++) {
-            String commentLikeCountTable = COMMENT_LIKE_COUNT_TABLE + "-" + i;
+        for(int i = 0; i < Constant.LIKE_COUNT_TABLE_NUM; i++) {
+            String commentLikeCountTable = Constant.COMMENT_LIKE_COUNT_TABLE + "-" + i;
             BoundHashOperations<String, String, String> hashOps = stringRedisTemplate.boundHashOps(commentLikeCountTable);
 
             //scan

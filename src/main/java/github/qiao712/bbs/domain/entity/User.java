@@ -40,6 +40,9 @@ public class User extends BaseEntity {
 
     private Boolean gender;
 
+    @Null(groups = {AddGroup.class, UpdateGroup.class})
+    private Integer followerCount;
+
     @TableField(exist = false)
     private String role;
     @TableField(exist = false)

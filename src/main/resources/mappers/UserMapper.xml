@@ -30,4 +30,9 @@
     <select id="selectRoleName" resultType="String">
         SELECT name FROM t_role WHERE t_role.id = #{roleId}
     </select>
+
+    <update id="increaseFollowerCount">
+        UPDATE t_user SET follower_count = follower_count + #{delta}
+        WHERE id = #{userId} AND follower_count + #{delta} >= 0
+    </update>
 </mapper>

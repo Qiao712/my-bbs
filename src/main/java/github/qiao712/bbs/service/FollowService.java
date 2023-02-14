@@ -1,11 +1,15 @@
 package github.qiao712.bbs.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
+import github.qiao712.bbs.domain.entity.Follow;
 import github.qiao712.bbs.domain.entity.Post;
+import org.springframework.transaction.annotation.Transactional;
 
-public interface FollowService {
+public interface FollowService extends IService<Follow> {
     /**
      * 关注
      */
@@ -25,19 +29,4 @@ public interface FollowService {
      * 粉丝列表
      */
     IPage<UserDto> listFollowers(Long userId, PageQuery pageQuery);
-
-    /**
-     * 获取动态列表
-     */
-    void listActivities(Long userId);
-
-    /**
-     * 将动态推送给关注者
-     */
-    boolean pushToFollower(Post post);
-
-    /**
-     * 用户主动拉取关注的动态
-     */
-    boolean pullForFollowing(Long userId);
 }

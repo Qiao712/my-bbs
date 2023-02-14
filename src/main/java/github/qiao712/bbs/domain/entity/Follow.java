@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 @Data
@@ -21,7 +20,9 @@ public class Follow implements Serializable {
 
     private Long followerId;
 
-    private Long followingId;
+    private Long followeeId;
+
+    private LocalDateTime lastFeedTime;
 
     private LocalDateTime createTime;
 }

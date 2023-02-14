@@ -94,6 +94,11 @@ public class TestSomething {
         System.out.println(post_cache);
         redisTemplate.delete("post_cache");
     }
+    @Test
+    public void testZset(){
+        Double testZset = redisTemplate.opsForZSet().score("testZset", "-1");
+        System.out.println(testZset);
+    }
 
     @Autowired
     private MessageService messageService;

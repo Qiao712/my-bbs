@@ -14,7 +14,8 @@ public class UserDto {
     private Boolean enable;
     private String role;
     private String avatarUrl;
-    private boolean gender;
+    private Boolean gender;
+    private Integer followerCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

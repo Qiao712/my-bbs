@@ -5,14 +5,14 @@ spring:
   #  配置数据源
   datasource:
     username: root
-    password: 5451876512
+    password: lty0712
     url: jdbc:mysql://localhost:3306/my-bbs?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis
   redis:
     host: localhost
-    password: 5451876512
+#    password: lty0712
     database: 0
 
   # 文件上传大小限制
@@ -25,7 +25,7 @@ spring:
 
   # Kafka
   kafka:
-    bootstrap-servers: localhost:9092  #必须得写端口号
+    bootstrap-servers: 114.116.245.83:9092  #必须得写端口号
     # producer 生产者配置
     producer:
       retries: 3  # 重试次数
@@ -79,19 +79,19 @@ sys:
   # 阿里云OOS配置
   aliOSS:
     endpoint: oss-cn-beijing.aliyuncs.com
-    accessKeyId: LTAI5tP3Jhgitq4fhuPWrEfS
-    accessKeySecret: siBZmvrbPi165nudv7qSZ6ZNOBdibS
-    bucket-name: qiao712-test-bucket
+    accessKeyId: LTAI5tPWJhgitqKfhuPWrEfS
+    accessKeySecret: siBZmvrbPidl5nudvMqSZOZNOBdibS
+    bucket-name: qiao712-my-bbs
 
   # ElasticSearch地址
   elastic-search:
     hosts:
-      - localhost:9200
+      - 114.116.245.83:9200
     username: elastic
-    password: 78787855
+    password: lty0712
 
   # 系统缓存设置
   cache:
-    post-cache-valid-time: 60           #60s
+    post-cache-valid-time: 60         #60s
     post-id-list-cache-max-length: 100
 

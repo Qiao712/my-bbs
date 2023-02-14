@@ -34,4 +34,14 @@ public interface StatisticsService {
      * 计算公式
      */
     Long computePostScore(long likeCount, long commentCount, long viewCount, LocalDateTime createTime);
+
+    /**
+     * 记录用户今天活跃
+     */
+    void markUserActive(Long userId);
+
+    /**
+     * 判断是否为活跃用户
+     */
+    boolean isActiveUser(Long userId);
 }
