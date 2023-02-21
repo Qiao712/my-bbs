@@ -1,7 +1,7 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.Constant;
+import github.qiao712.bbs.config.CacheConstant;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.entity.CommentLike;
 import github.qiao712.bbs.domain.entity.PostLike;
@@ -68,7 +68,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
      * 将Redis中大的hash表拆成若干个小的，方便同步
      */
     private String getTableName(Long id, String table){
-        return table + "-" + id% Constant.LIKE_COUNT_TABLE_NUM;
+        return table + "-" + id% CacheConstant.LIKE_COUNT_TABLE_NUM;
     }
 
     //Post-----------------------------------------------------------
@@ -91,7 +91,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         postLikeMapper.insert(postLike);
 
         //路由到某张表
-        String postLikeCountTable = getTableName(postId, Constant.POST_LIKE_COUNT_TABLE);
+        String postLikeCountTable = getTableName(postId, CacheConstant.POST_LIKE_COUNT_TABLE);
 
         for(int i = 0; i < 10; i++){    //重试次数
             //若存在缓存的值则增/减
@@ -119,10 +119,23 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
     @Override
     public Long getPostLikeCount(Long postId) {
-        //优先从缓存中获取
-        String postLikeCountTable = getTableName(postId, Constant.POST_LIKE_COUNT_TABLE); //路由到某张表
+        //优先从更新缓存列表中取
+        String postLikeCountTable = getTableName(postId, CacheConstant.POST_LIKE_COUNT_TABLE); //路由到某张表
         String value = (String) stringRedisTemplate.opsForHash().get(postLikeCountTable, postId.toString());
-        return value != null ? Long.parseLong(value) : postMapper.selectLikeCount(postId);
+
+        //否则取缓存的数据库中值
+        if(value == null){
+            value = stringRedisTemplate.opsForValue().get(CacheConstant.POST_LIKE_COUNT+postId);
+        }
+
+        //从数据库中取
+        if(value == null){
+            Long count = postMapper.selectLikeCount(postId);
+            stringRedisTemplate.opsForValue().set(CacheConstant.POST_LIKE_COUNT+postId, count.toString(), CacheConstant.POST_CACHE_EXPIRE_TIME);
+            return count;
+        }
+
+        return Long.parseLong(value);
     }
 
     @Override
@@ -132,8 +145,8 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         final int BATCH_SIZE = 1000;
 
-        for(int i = 0; i < Constant.LIKE_COUNT_TABLE_NUM; i++) {
-            String postLikeCountTable = Constant.POST_LIKE_COUNT_TABLE + "-" + i;
+        for(int i = 0; i < CacheConstant.LIKE_COUNT_TABLE_NUM; i++) {
+            String postLikeCountTable = CacheConstant.POST_LIKE_COUNT_TABLE + "-" + i;
             BoundHashOperations<String, String, String> hashOps = stringRedisTemplate.boundHashOps(postLikeCountTable);
 
             //scan
@@ -144,10 +157,14 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
                         Map.Entry<String, String> entry = cursor.next();
 
                         //同步至数据库
-                        postMapper.updateLikeCount(Long.parseLong(entry.getKey()), Long.parseLong(entry.getValue()));
+                        long postId = Long.parseLong(entry.getKey());
+                        long count = Long.parseLong(entry.getValue());
+                        postMapper.updateLikeCount(postId, count);
 
                         //在Redis中比较并删除 （若值被该变了则不删能删除）
                         stringRedisTemplate.execute(compareAndDelete, Collections.singletonList(postLikeCountTable), entry.getKey(), entry.getValue());
+                        //删除对数据库中值的缓存
+                        stringRedisTemplate.delete(CacheConstant.POST_LIKE_COUNT+ postId);
                     }
                 }
             }
@@ -177,7 +194,7 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
         commentLikeMapper.insert(commentLike);
 
         //路由到某张表
-        String commentLikeCountTable = getTableName(commentId, Constant.COMMENT_LIKE_COUNT_TABLE);
+        String commentLikeCountTable = getTableName(commentId, CacheConstant.COMMENT_LIKE_COUNT_TABLE);
 
         for(int i = 0; i < 10; i++){    //重试次数
             //若存在缓存的值则增/减
@@ -204,9 +221,22 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
     @Override
     public Long getCommentLikeCount(Long commentId) {
         //优先从缓存中获取
-        String commentLikeCountTable = getTableName(commentId, Constant.COMMENT_LIKE_COUNT_TABLE); //路由到某张表
+        String commentLikeCountTable = getTableName(commentId, CacheConstant.COMMENT_LIKE_COUNT_TABLE); //路由到某张表
         String value = (String) stringRedisTemplate.opsForHash().get(commentLikeCountTable, commentId.toString());
-        return value != null ? Long.parseLong(value) : commentMapper.selectLikeCount(commentId);
+
+        //否则取缓存的数据库中值
+        if(value == null){
+            value = stringRedisTemplate.opsForValue().get(CacheConstant.COMMENT_LIKE_COUNT+commentId);
+        }
+
+        //从数据库中取
+        if(value == null){
+            Long count = commentMapper.selectLikeCount(commentId);
+            stringRedisTemplate.opsForValue().set(CacheConstant.COMMENT_LIKE_COUNT+commentId, count.toString(), CacheConstant.POST_CACHE_EXPIRE_TIME);
+            return count;
+        }
+
+        return Long.parseLong(value);
     }
 
     @Override
@@ -216,8 +246,8 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
         final int BATCH_SIZE = 1000;
 
-        for(int i = 0; i < Constant.LIKE_COUNT_TABLE_NUM; i++) {
-            String commentLikeCountTable = Constant.COMMENT_LIKE_COUNT_TABLE + "-" + i;
+        for(int i = 0; i < CacheConstant.LIKE_COUNT_TABLE_NUM; i++) {
+            String commentLikeCountTable = CacheConstant.COMMENT_LIKE_COUNT_TABLE + "-" + i;
             BoundHashOperations<String, String, String> hashOps = stringRedisTemplate.boundHashOps(commentLikeCountTable);
 
             //scan
@@ -228,10 +258,14 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
                         Map.Entry<String, String> entry = cursor.next();
 
                         //同步至数据库
-                        commentMapper.updateLikeCount(Long.parseLong(entry.getKey()), Long.parseLong(entry.getValue()));
+                        long commentId = Long.parseLong(entry.getKey());
+                        long count = Long.parseLong(entry.getValue());
+                        commentMapper.updateLikeCount(commentId, count);
 
                         //在Redis中比较并删除 （若值被该变了则不删能删除）
                         stringRedisTemplate.execute(compareAndDelete, Collections.singletonList(commentLikeCountTable), entry.getKey(), entry.getValue());
+                        //删除对数据库中值的缓存
+                        stringRedisTemplate.delete(CacheConstant.COMMENT_LIKE_COUNT+commentId);
                     }
                 }
             }
