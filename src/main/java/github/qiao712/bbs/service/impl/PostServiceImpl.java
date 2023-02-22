@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.Constant;
+import github.qiao712.bbs.config.CacheConstant;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
@@ -93,13 +93,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         //缓存到按时间排序的列表中
-        String key = Constant.POST_LIST_BY_TIME_KEY_PREFIX + post.getForumId();
+        String key = CacheConstant.POST_LIST_BY_TIME_KEY_PREFIX + post.getForumId();
         redisTemplate.opsForZSet().add(key, post.getId().toString(), System.currentTimeMillis());
-        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-2);  //只保留前maxLength+1个id(包括一个-1标记)
+        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-1);  //只保留前maxLength个id
         //缓存到按热度排序的表中
-        key = Constant.POST_LIST_BY_SCORE_KEY_PREFIX + post.getForumId();
+        key = CacheConstant.POST_LIST_BY_SCORE_KEY_PREFIX + post.getForumId();
         redisTemplate.opsForZSet().add(key, post.getId().toString(), post.getScore());
-        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-2);  //只保留前maxLength+1个id(包括一个-1标记)
+        redisTemplate.opsForZSet().removeRange(key, 0, -cachedPostListMaxLength-1);  //只保留前maxLength个id
 
         //解析出引用的图片
         List<String> urls = HtmlUtil.getImageUrls(post.getContent());
@@ -124,6 +124,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             fileService.increaseReferenceCount(imageFileIds, 1);
         }
 
+        //增加贴子数量
+        forumService.increasePostCount(post.getForumId(), 1L);
+
         //发布添加事件，以同步至ElasticSearch
         messageSender.sendMessageSync(MessageType.POST_ADD, post.getId().toString(), post);
         return true;
@@ -137,15 +140,19 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         statisticsService.markPostToFreshScore(postId);
 
         //先从缓存中取出Post
-        String postKey = Constant.POST_KEY_PREFIX + postId;
+        String postKey = CacheConstant.POST_KEY_PREFIX + postId;
         String postDtoJson = redisTemplate.opsForValue().get(postKey);
         if(postDtoJson != null){
             PostDto postDto = JSON.parseObject(postDtoJson, PostDto.class);
 
-            //点赞数量 / 点赞状态
-            Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
+            //点赞数量
             postDto.setLikeCount(likeService.getPostLikeCount(postDto.getId()));
+
+            //当前用户点赞状态
+            Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
             postDto.setLiked(currentUserId == null ? null : likeService.hasLikedPost(postDto.getId(), currentUserId));  //当前用户是否点赞
+
+            //浏览量
 
             return postDto;
         }
@@ -159,8 +166,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public IPage<PostDto> listPosts(PageQuery pageQuery, Long forumId, Long authorId) {
-        int end = pageQuery.getPageNo() * pageQuery.getPageSize();                              //1 Index
-        int start = end - pageQuery.getPageSize() + 1;
+        int end = pageQuery.getPageNo() * pageQuery.getPageSize();
+        int start = end - pageQuery.getPageSize();
         boolean isAsc = "asc".equalsIgnoreCase(pageQuery.getOrder());                           //默认降序
         String orderBy = pageQuery.getOrderBy() != null ? pageQuery.getOrderBy() : "score";     //默认按热度排序
         if(!columnsCanSorted.contains(orderBy)){
@@ -169,49 +176,37 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //在按板块查询时，前几页从缓存中查询
         List<PostDto> postDtos = null;
+        long total = 0;                     //总贴子数
         if(end <= cachedPostListMaxLength && authorId == null && forumId != null && !isAsc){
-            //按热度或时间排序
-            String key = "create_time".equals(pageQuery.getOrderBy()) ? Constant.POST_LIST_BY_TIME_KEY_PREFIX + forumId : Constant.POST_LIST_BY_SCORE_KEY_PREFIX + forumId;
+            total = forumService.getPostCount(forumId);
+
+            //按热度或时间排序的缓存列表
+            String key = "create_time".equals(pageQuery.getOrderBy()) ? CacheConstant.POST_LIST_BY_TIME_KEY_PREFIX + forumId : CacheConstant.POST_LIST_BY_SCORE_KEY_PREFIX + forumId;
             BoundZSetOperations<String, String> zset = redisTemplate.boundZSetOps(key);
 
-            if(zset.score("-1") == null){
-                //缓存列表中无标记-1，表示缓存未初始化(未从数据库中读取过前几页的列表并加入缓存)
+            Long zsetSize = zset.size();
+            if(zsetSize == null || zsetSize < cachedPostListMaxLength && zsetSize < total){
+                //列表不完整
                 executor.execute(()->{
-                    LambdaQueryWrapper<Post> postIdQueryWrapper = new LambdaQueryWrapper<>();
-                    postIdQueryWrapper.select(Post::getId, Post::getCreateTime);
-                    postIdQueryWrapper.eq(Post::getForumId, forumId);
-                    postIdQueryWrapper.orderBy(true, false, orderBy.equals("create_time") ? Post::getCreateTime : Post::getScore);
-                    postIdQueryWrapper.last("limit " + cachedPostListMaxLength);
-                    List<Post> posts = postMapper.selectList(postIdQueryWrapper);
-
-                    Set<ZSetOperations.TypedTuple<String>> tuples = posts.stream().map(post -> {
-                        long timestamp = post.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();    //贴子创建时间戳
-                        return new DefaultTypedTuple<>(post.getId().toString(), (double) timestamp);
-                    }).collect(Collectors.toSet());
-
-                    //添加一个score=MAX_VALUE的标记“-1”
-                    tuples.add(new DefaultTypedTuple<>("-1", Double.MAX_VALUE));
-
-                    zset.add(tuples);
+                    refreshListCache(forumId, orderBy);
                 });
             }else{
-                //缓存命中
-                Set<String> postIds = zset.reverseRange(start, end);
+                //从缓存中获取
+                Set<String> postIds = zset.reverseRange(start, end-1);
                 if(postIds != null) postDtos = listPosts(postIds.stream().map(Long::valueOf).collect(Collectors.toList()));
             }
         }
 
         IPage<Post> postPage = pageQuery.getIPage(columnsCanSorted, "score", false);
-        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(forumId != null, Post::getForumId, forumId);
-        queryWrapper.eq(authorId != null, Post::getAuthorId, authorId);
 
         if(postDtos != null){
-            //查询总数
-            Long total = postMapper.selectCount(queryWrapper);
+            //设置总页数
             postPage.setTotal(total);
         }else{
             //未走缓存，则从数据库中查询
+            LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(forumId != null, Post::getForumId, forumId);
+            queryWrapper.eq(authorId != null, Post::getAuthorId, authorId);
             postPage = postMapper.selectPage(postPage, queryWrapper);
             List<Post> posts = postPage.getRecords();
             postDtos = convertToPostDtos(posts);
@@ -225,17 +220,19 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         //优先从缓存中取
         List<PostDto> cachedPostDtos = null;
-        List<String> postJsons = redisTemplate.opsForValue().multiGet(postIds.stream().map(id->Constant.POST_KEY_PREFIX +id).collect(Collectors.toList()));
+        List<String> postJsons = redisTemplate.opsForValue().multiGet(postIds.stream().map(id-> CacheConstant.POST_KEY_PREFIX +id).collect(Collectors.toList()));
         if(postJsons != null){
             cachedPostDtos = postJsons.stream().filter(Objects::nonNull).map(postJson -> JSON.parseObject(postJson, PostDto.class)).collect(Collectors.toList());
         }
 
         if(cachedPostDtos != null){
-            //刷新/重新设置点赞数 / 用户是否点赞
+            //刷新部分字段
             Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
             for (PostDto postDto : cachedPostDtos) {
+                //点赞数
                 postDto.setLikeCount(likeService.getPostLikeCount(postDto.getId()));
-                postDto.setLiked(currentUserId == null ? null : likeService.hasLikedPost(postDto.getId(), currentUserId));  //当前用户是否点赞
+                //当前用户是否点赞
+                postDto.setLiked(currentUserId == null ? null : likeService.hasLikedPost(postDto.getId(), currentUserId));
             }
 
             //全部获取
@@ -268,7 +265,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //异步加入缓存
         executor.execute(()->{
             for (PostDto postDto : uncachedPostDtos) {
-                redisTemplate.opsForValue().set(Constant.POST_KEY_PREFIX +postDto.getId(), JSON.toJSONString(postDto), postCacheValidTime, TimeUnit.SECONDS);
+                redisTemplate.opsForValue().set(CacheConstant.POST_KEY_PREFIX +postDto.getId(), JSON.toJSONString(postDto), postCacheValidTime, TimeUnit.SECONDS);
             }
         });
 
@@ -309,14 +306,17 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         commentQuery.setPostId(postId);
         commentMapper.delete(new QueryWrapper<>(commentQuery));
 
+        //减少贴子数量
+        forumService.increasePostCount(post.getForumId(), -1L);
+
         if(postMapper.deleteById(postId) > 0){
             //发布删除事件，以同步至ElasticSearch
             messageSender.sendMessageSync(MessageType.POST_DELETE, postId.toString(), postId);
 
             //清除缓存
-            redisTemplate.delete(Constant.POST_KEY_PREFIX +postId);
-            redisTemplate.opsForZSet().remove(Constant.POST_LIST_BY_SCORE_KEY_PREFIX+post.getForumId(), postId.toString());
-            redisTemplate.opsForZSet().remove(Constant.POST_LIST_BY_TIME_KEY_PREFIX+post.getForumId(), postId.toString());
+            redisTemplate.delete(CacheConstant.POST_KEY_PREFIX +postId);
+            redisTemplate.opsForZSet().remove(CacheConstant.POST_LIST_BY_SCORE_KEY_PREFIX+post.getForumId(), postId.toString());
+            redisTemplate.opsForZSet().remove(CacheConstant.POST_LIST_BY_TIME_KEY_PREFIX+post.getForumId(), postId.toString());
             return true;
         }
 
@@ -329,6 +329,21 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         postQuery.setId(postId);
         postQuery.setAuthorId(userId);
         return postMapper.exists(new QueryWrapper<>(postQuery));
+    }
+
+    @Override
+    public void increaseCommentCount(Long postId, Long delta) {
+        postMapper.increaseCommentCount(postId, delta);
+        redisTemplate.delete(CacheConstant.POST_KEY_PREFIX+postId);
+    }
+
+    @Override
+    public void refreshListCache(){
+        List<Forum> forums = forumService.listAllForums();
+        for (Forum forum : forums) {
+            refreshListCache(forum.getId(), "create_time");
+            refreshListCache(forum.getId(), "score");
+        }
     }
 
     /**
@@ -377,19 +392,26 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //板块名称
         Forum forum = forumService.getById(post.getForumId());
         postDto.setForumName(forum.getName());
-
-        //点赞数量 / 点赞状态
-        Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;
-        postDto.setLikeCount(likeService.getPostLikeCount(postDto.getId()));
-        postDto.setLiked(currentUserId == null ? null : likeService.hasLikedPost(postDto.getId(), currentUserId));  //当前用户是否点赞
         return postDto;
     }
 
+    private Long getCommentCount(Long postId){
+        String key = CacheConstant.COMMENT_COUNT_KEY_PREFIX + postId;
+        String value = redisTemplate.opsForValue().get(key);
+        if(value != null){
+            return Long.parseLong(value);
+        }else{
+            Long count = postMapper.selectCommentCount(postId);
+            redisTemplate.opsForValue().set(key, count.toString(), CacheConstant.POST_CACHE_EXPIRE_TIME, TimeUnit.SECONDS);
+            return count;
+        }
+    }
+
     /**
-     * 初始化某板块按时间/热度排序的贴子id列表缓存
+     * 刷新某板块按时间/热度排序的贴子id列表缓存
      * 从数据库中读取前n行id，并缓存
      */
-    private void initIdListCache(Long forumId, String orderBy){
+    private void refreshListCache(Long forumId, String orderBy){
         LambdaQueryWrapper<Post> postIdQueryWrapper = new LambdaQueryWrapper<>();
         postIdQueryWrapper.select(Post::getId, Post::getCreateTime);
         postIdQueryWrapper.eq(Post::getForumId, forumId);
@@ -402,10 +424,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             return new DefaultTypedTuple<>(post.getId().toString(), (double) timestamp);
         }).collect(Collectors.toSet());
 
-        //无法填满，则填充负数
-
-
-        String key = ("create_time".equals(orderBy) ? Constant.POST_LIST_BY_TIME_KEY_PREFIX: Constant.POST_LIST_BY_SCORE_KEY_PREFIX) +  + forumId;
+        String key = ("create_time".equals(orderBy) ? CacheConstant.POST_LIST_BY_TIME_KEY_PREFIX: CacheConstant.POST_LIST_BY_SCORE_KEY_PREFIX) +  + forumId;
         redisTemplate.opsForZSet().add(key, tuples);
     }
 }

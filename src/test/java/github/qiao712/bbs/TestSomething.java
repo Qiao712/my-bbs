@@ -17,8 +17,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @SpringBootTest
 public class TestSomething {
@@ -98,6 +100,13 @@ public class TestSomething {
     public void testZset(){
         Double testZset = redisTemplate.opsForZSet().score("testZset", "-1");
         System.out.println(testZset);
+    }
+    @Test
+    public void testMGet(){
+        List<Object> values = redisTemplate.opsForValue().multiGet(Arrays.asList("abc", "def", "a22"));
+        for (Object value : values) {
+            System.out.println(value);
+        }
     }
 
     @Autowired

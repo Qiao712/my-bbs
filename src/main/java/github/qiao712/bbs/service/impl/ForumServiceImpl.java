@@ -3,20 +3,23 @@ package github.qiao712.bbs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import github.qiao712.bbs.config.CacheConstant;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Forum;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.ForumMapper;
 import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.ForumService;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +28,8 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
     private ForumMapper forumMapper;
     @Autowired
     private FileService fileService;
+    @Autowired
+    private StringRedisTemplate redisTemplate;
 
     @Override
     public Forum getForum(Long forumId) {
@@ -104,6 +109,25 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
         forum.setId(forumId);
         forum.setLogoFileId(fileId);
         return forumMapper.updateById(forum) > 0;
+    }
+
+    @Override
+    public Long getPostCount(Long forumId) {
+        String key = CacheConstant.POST_COUNT_KEY_PREFIX + forumId;
+        String value = redisTemplate.opsForValue().get(key);
+        if(value != null){
+            return Long.parseLong(value);
+        }else{
+            Long count = forumMapper.selectPostCount(forumId);
+            redisTemplate.opsForValue().set(key, count.toString(), CacheConstant.POST_CACHE_EXPIRE_TIME, TimeUnit.SECONDS);
+            return count;
+        }
+    }
+
+    @Override
+    public void increasePostCount(Long forumId, Long delta) {
+        forumMapper.increasePostCount(forumId, delta);
+        redisTemplate.delete(CacheConstant.POST_COUNT_KEY_PREFIX+forumId);
     }
 
     private Forum getForumByName(String forumName){

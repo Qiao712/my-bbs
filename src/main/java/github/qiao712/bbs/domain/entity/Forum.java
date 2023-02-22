@@ -35,6 +35,9 @@ public class Forum extends BaseEntity {
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "禁止直接指定logo图片id")
     private Long logoFileId;
 
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "禁止直接指定贴子数量")
+    private Long postCount;
+
     @TableField(exist = false)
     private String logoUrl;
 }

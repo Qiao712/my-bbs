@@ -44,4 +44,14 @@ public interface PostService extends IService<Post> {
      * 判断是否位贴子作者
      */
     boolean isAuthor(Long postId, Long userId);
+
+    /**
+     * 增加评论数量
+     */
+    void increaseCommentCount(Long postId, Long delta);
+
+    /**
+     * 刷新各个板块按时间/热度排序的贴子列表
+     */
+    void refreshListCache();
 }

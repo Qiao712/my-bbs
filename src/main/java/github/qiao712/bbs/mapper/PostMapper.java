@@ -19,6 +19,8 @@ public interface PostMapper extends BaseMapper<Post> {
 
     Long selectViewCount(Long postId);
 
+    Long selectCommentCount(Long postId);
+
     List<Long> selectLikeCountBatch(List<Long> postIds);
 
     List<Long> selectViewCountBatch(List<Long> postIds);

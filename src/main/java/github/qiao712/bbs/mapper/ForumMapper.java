@@ -6,5 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface ForumMapper extends BaseMapper<Forum> {
+    Integer increasePostCount(Long forumId, Long delta);
 
+    Long selectPostCount(Long forumId);
 }

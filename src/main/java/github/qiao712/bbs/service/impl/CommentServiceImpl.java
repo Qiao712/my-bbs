@@ -16,7 +16,6 @@ import github.qiao712.bbs.domain.entity.*;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.mq.MessageSender;
 import github.qiao712.bbs.mq.MessageType;
 import github.qiao712.bbs.service.*;
@@ -37,7 +36,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private CommentMapper commentMapper;
     @Autowired
-    private PostMapper postMapper;
+    private PostService postService;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -60,9 +59,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         comment.setAuthorId(currentUser.getId());
 
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", comment.getPostId());
-        if(!postMapper.exists(queryWrapper)){
+        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Post::getId, comment.getPostId());
+        if(!postService.getBaseMapper().exists(queryWrapper)){
             throw new ServiceException(ResultCode.INVALID_PARAM, "贴子不存在");
         }
 
@@ -113,28 +112,27 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
 
         //贴子评论数+1
-        postMapper.increaseCommentCount(comment.getPostId(), 1L);
+        postService.increaseCommentCount(comment.getPostId(), 1L);
 
         //发送评论/回复消息
         messageSender.sendMessageSync(MessageType.COMMENT_ADD, comment.getId().toString(), comment);
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());
-
         return flag;
     }
 
     @Override
     public IPage<CommentDto> listComments(PageQuery pageQuery, Long postId, Long parentCommentId) {
-        QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("post_id", postId);
-        queryWrapper.orderByAsc("create_time");
+        LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Comment::getPostId, postId);
+        queryWrapper.orderByAsc(Comment::getCreateTime);
         if(parentCommentId != null){
             //查询父评论id为parentCommentId的所有评论
-            queryWrapper.eq("parent_id", parentCommentId);
+            queryWrapper.eq(Comment::getParentId, parentCommentId);
         }else{
             //查询一级评论
-            queryWrapper.isNull("parent_id");
+            queryWrapper.isNull(Comment::getParentId);
         }
         IPage<Comment> commentPage = commentMapper.selectPage(pageQuery.getIPage(), queryWrapper);
         List<Comment> comments = commentPage.getRecords();
@@ -216,7 +214,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         commentsToDelete.add(commentId);
 
         //更新评论数量
-        postMapper.increaseCommentCount(comment.getPostId(), (long) - commentsToDelete.size());
+        postService.increaseCommentCount(comment.getPostId(), (long) - commentsToDelete.size());
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());

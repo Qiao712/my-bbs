@@ -2,7 +2,7 @@ package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.Constant;
+import github.qiao712.bbs.config.CacheConstant;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.entity.Feed;
@@ -62,15 +62,15 @@ public class FeedServiceImpl extends ServiceImpl<FeedMapper, Feed> implements Fe
     @Override
     public void pushFeed(Post post) {
         //缓存到zset
-        String key = Constant.OUTBOX_KEY_PREFIX + ":" + post.getAuthorId();
+        String key = CacheConstant.OUTBOX_KEY_PREFIX + ":" + post.getAuthorId();
         redisTemplate.opsForZSet().add(key, post.getId().toString(), post.getCreateTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
 
         //实现zset中个键的过期时间
         //重置zset整体过期时间
-        redisTemplate.expire(key, Constant.OUTBOX_CACHE_EXPIRE_TIME, TimeUnit.MILLISECONDS);
+        redisTemplate.expire(key, CacheConstant.OUTBOX_CACHE_EXPIRE_TIME, TimeUnit.MILLISECONDS);
         //删除zset中已经过期的键
         long now = System.currentTimeMillis();
-        redisTemplate.opsForZSet().removeRangeByScore(key, 0, now - Constant.OUTBOX_CACHE_EXPIRE_TIME);
+        redisTemplate.opsForZSet().removeRangeByScore(key, 0, now - CacheConstant.OUTBOX_CACHE_EXPIRE_TIME);
 
         //推送给活跃用户
         LambdaQueryWrapper<Follow> queryWrapper = new LambdaQueryWrapper<>();
@@ -100,7 +100,7 @@ public class FeedServiceImpl extends ServiceImpl<FeedMapper, Feed> implements Fe
         long lastFeedTimestamp = lastFeedTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
         //从Redis中的outbox中取 时间戳before前的postId, (旧->新)
-        String key = Constant.OUTBOX_KEY_PREFIX + ":" + followeeId;
+        String key = CacheConstant.OUTBOX_KEY_PREFIX + ":" + followeeId;
         Set<ZSetOperations.TypedTuple<String>> postIdsWithTime = redisTemplate.opsForZSet().rangeByScoreWithScores(key, lastFeedTimestamp, Double.MAX_VALUE);
         if(postIdsWithTime != null){
             for (ZSetOperations.TypedTuple<String> postIdWithTime : postIdsWithTime) {

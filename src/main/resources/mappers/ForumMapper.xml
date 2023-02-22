@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="github.qiao712.bbs.mapper.ForumMapper">
+    <update id="increasePostCount">
+        UPDATE t_forum SET post_count = post_count + #{delta} WHERE id = #{forumId}
+    </update>
+
+    <select id="selectPostCount">
+        SELECT post_count FROM t_forum WHERE id = #{forumId}
+    </select>
+</mapper>
