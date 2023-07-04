@@ -3,7 +3,6 @@ package github.qiao712.bbs;
 import github.qiao712.bbs.domain.entity.Post;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.StatisticsService;
-import github.qiao712.bbs.util.DistributedLock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,22 +45,6 @@ public class TestStatisticsService {
     RedisTemplate<String, Object> redisTemplate;
     @Autowired
     StringRedisTemplate stringRedisTemplate;
-    @Test
-    public void testLock() throws InterruptedException {
-        DistributedLock distributedLock = new DistributedLock("testlock", 10, redisTemplate);
-        System.out.println(distributedLock.tryLock() + "-------");
-        System.out.println(distributedLock.tryLock() + "-------");
-        System.out.println(distributedLock.tryLock() + "-------");
-        System.out.println(distributedLock.tryLock() + "-------");
-
-        for(int i = 0; i < 100; i++){
-            distributedLock.refresh();
-            System.out.println("续期");
-            Thread.sleep(5000);
-        }
-
-        distributedLock.unlock();
-    }
 
     @Test
     public void testLua(){

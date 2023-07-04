@@ -83,10 +83,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             throw new ServiceException(ResultCode.POST_ERROR, "图片数量超出限制");
         }
 
-        //发布添加事件，以同步至ElasticSearch
+        //以同步至ElasticSearch
         try {
             searchService.savePost(post);
-        } catch (IOException e) {
+        } catch (Throwable e) {
             log.error("储存至ElasticSearch失败");
         }
         return true;
@@ -158,7 +158,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             //发布删除事件，以同步至ElasticSearch
             try {
                 searchService.removePost(postId);
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 log.error("ES中删除失败");
             }
 

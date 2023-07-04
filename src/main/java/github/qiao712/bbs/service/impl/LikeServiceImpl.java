@@ -1,9 +1,9 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.entity.CommentLike;
 import github.qiao712.bbs.domain.entity.PostLike;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.CommentLikeMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
@@ -11,7 +11,6 @@ import github.qiao712.bbs.mapper.PostLikeMapper;
 import github.qiao712.bbs.mapper.PostMapper;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
-import github.qiao712.bbs.util.DistributedLock;
 import github.qiao712.bbs.util.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -21,11 +20,13 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @Slf4j
-public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> implements LikeService, InitializingBean {
+public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> implements LikeService {
     @Autowired
     private PostLikeMapper postLikeMapper;
     @Autowired
@@ -63,15 +64,6 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
     private final static String POST_LIKE_COUNT_TABLE = "post-like-count-table";
     private final static String COMMENT_LIKE_COUNT_TABLE = "comment-like-count-table";
-
-    //确保只有一个节点进行刷新
-    private DistributedLock commentLikeCountSyncLock;
-    private DistributedLock postLikeCountSyncLock;
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        postLikeCountSyncLock = new DistributedLock("post-like-counts-sync", 100, redisTemplate);
-        commentLikeCountSyncLock = new DistributedLock("comment-like-counts-sync", 100, redisTemplate);
-    }
 
     /**
      * 将上面这些hash表拆，每个都解为TABLE_NUM个，将编号以后缀的形式加上。
@@ -139,7 +131,6 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
     @Override
     synchronized public void syncPostLikeCount(){
-        if(! postLikeCountSyncLock.tryLock()) return;
         long begin = System.nanoTime();
         log.info("开始同步贴子点赞数据");
 
@@ -162,14 +153,10 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
                         //在Redis中比较并删除 （若值被该变了则不删能删除）
                         stringRedisTemplate.execute(compareAndDelete, Collections.singletonList(postLikeCountTable), entry.getKey(), entry.getValue());
                     }
-
-                    //将锁续费
-                    postLikeCountSyncLock.refresh();
                 }
             }
         }
 
-        postLikeCountSyncLock.unlock();
         long end = System.nanoTime();
         log.info("贴子点赞数据同步完成. 耗时:{}ms", (end-begin)/1e6);
     }
@@ -228,7 +215,6 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
 
     @Override
     synchronized public void syncCommentLikeCount() {
-        if(! commentLikeCountSyncLock.tryLock()) return;
         long begin = System.nanoTime();
         log.info("开始同步评论点赞数据");
 
@@ -251,14 +237,10 @@ public class LikeServiceImpl extends ServiceImpl<PostLikeMapper, PostLike> imple
                         //在Redis中比较并删除 （若值被该变了则不删能删除）
                         stringRedisTemplate.execute(compareAndDelete, Collections.singletonList(commentLikeCountTable), entry.getKey(), entry.getValue());
                     }
-
-                    //将锁续费
-                    commentLikeCountSyncLock.refresh();
                 }
             }
         }
 
-        commentLikeCountSyncLock.unlock();
         long end = System.nanoTime();
         log.info("评论点赞数据同步完成. 耗时:{}ms", (end-begin)/1e6);
     }
