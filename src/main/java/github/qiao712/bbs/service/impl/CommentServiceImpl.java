@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
@@ -12,15 +11,13 @@ import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
 import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
-import github.qiao712.bbs.domain.entity.*;
+import github.qiao712.bbs.domain.entity.Comment;
+import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.User;
 import github.qiao712.bbs.exception.ServiceException;
-import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.mq.MessageSender;
-import github.qiao712.bbs.mq.MessageType;
 import github.qiao712.bbs.service.*;
-import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
@@ -39,19 +36,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private PostMapper postMapper;
     @Autowired
-    private FileService fileService;
-    @Autowired
     private UserService userService;
     @Autowired
     private LikeService likeService;
     @Autowired
-    private AttachmentMapper attachmentMapper;
-    @Autowired
     private StatisticsService statisticsService;
-    @Autowired
-    private SystemConfig systemConfig;
-    @Autowired
-    private MessageSender messageSender;
     @Autowired
     private MessageService messageService;
 
@@ -86,37 +75,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         //创建评论，获取主键(插入附加时使用)
         boolean flag = commentMapper.insert(comment) > 0;
 
-        //若为一级评论，则允许插入图片(附件)
-        if(comment.getRepliedId() == null){
-            //解析出引用的图片
-            List<String> urls = HtmlUtil.getImageUrls(comment.getContent());
-            if(urls.size() > systemConfig.getMaxCommentImageNum()){
-                throw new ServiceException(ResultCode.COMMENT_ERROR, "图片数量超出限制");
-            }
-
-            //如果文件的上传者是该用户(评论作者)，则记录该评论对图片的引用(记录为该评论一个附件)
-            List<Long> imageFileIds = new ArrayList<>(urls.size());
-            for (String url : urls) {
-                FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
-                if(imageFileIdentity == null) continue;  //为外部连接
-
-                if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId())
-                    && FileService.POST_IMAGE_FILE.equals(imageFileIdentity.getSource())){
-                    imageFileIds.add(imageFileIdentity.getId());
-                }
-            }
-            if(!imageFileIds.isEmpty()){
-                attachmentMapper.insertAttachments(comment.getPostId(), comment.getId(), imageFileIds);
-                //引用图片
-                fileService.increaseReferenceCount(imageFileIds, 1);
-            }
-        }
-
         //贴子评论数+1
         postMapper.increaseCommentCount(comment.getPostId(), 1L);
 
         //发送评论/回复消息
-        messageSender.sendMessageSync(MessageType.COMMENT_ADD, comment.getId().toString(), comment);
+        sendCommentNoticeMessage(comment);
 
         //标记贴子需要刷新热度值
         statisticsService.markPostToFreshScore(comment.getPostId());
@@ -196,17 +159,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.select(Comment::getId).eq(Comment::getParentId, commentId);
             commentsToDelete = commentMapper.selectList(queryWrapper).stream().map(Comment::getId).collect(Collectors.toList());
-
-            //图片等文件的引用计数减
-            List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfComment(comment.getPostId(), comment.getId());
-            if(!attachmentFileIds.isEmpty())
-                fileService.increaseReferenceCount(attachmentFileIds, -1);
-
-            //删除attachment记录
-            Attachment attachmentQuery = new Attachment();
-            attachmentQuery.setPostId(comment.getPostId());
-            attachmentQuery.setCommentId(comment.getId());
-            attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
         }else{  //二级评论(二级评论无图片)
             //删除回复其的评论
             LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
@@ -233,5 +185,44 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         commentQuery.setId(commentId);
         commentQuery.setAuthorId(userId);
         return commentMapper.exists(new QueryWrapper<>(commentQuery));
+    }
+
+    /**
+     * 发送评论提醒消息
+     */
+    private void sendCommentNoticeMessage(Comment comment){
+        ReplyMessageContent messageContent = new ReplyMessageContent();
+
+        messageContent.setCommentId(comment.getId());
+        messageContent.setComment(comment.getContent());
+        messageContent.setAuthorId(comment.getAuthorId());
+        messageContent.setAuthorUsername(userService.getUsername(comment.getAuthorId()));
+        messageContent.setPostId(comment.getPostId());
+
+        //设置贴子标题
+        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Post::getId, comment.getPostId());
+        queryWrapper.select(Post::getTitle, Post::getAuthorId);
+        Post post = postMapper.selectOne(queryWrapper);
+        messageContent.setPostTitle(post.getTitle());
+
+        //消息接收者
+        Long receiverId = null;
+        if(comment.getRepliedId() != null){
+            //接收者为被回复评论的作者
+            LambdaQueryWrapper<Comment> commentQueryWrapper = new LambdaQueryWrapper<>();
+            commentQueryWrapper.select(Comment::getAuthorId);
+            commentQueryWrapper.eq(Comment::getId, comment.getRepliedId());
+            Comment repliedComment = commentMapper.selectOne(commentQueryWrapper);
+            receiverId = repliedComment.getAuthorId();
+        }else{
+            //接收者为贴子作者
+            receiverId = post.getAuthorId();
+        }
+
+        if(!Objects.equals(receiverId, comment.getAuthorId())){
+            //使用评论的id作为消息的key，以便快速检索删除
+            messageService.sendMessage(comment.getAuthorId(), receiverId, comment.getId().toString(), messageContent);
+        }
     }
 }

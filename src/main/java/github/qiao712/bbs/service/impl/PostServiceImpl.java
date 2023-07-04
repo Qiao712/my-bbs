@@ -11,13 +11,13 @@ import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.PostDto;
 import github.qiao712.bbs.domain.dto.UserDto;
-import github.qiao712.bbs.domain.entity.*;
+import github.qiao712.bbs.domain.entity.Comment;
+import github.qiao712.bbs.domain.entity.Forum;
+import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.User;
 import github.qiao712.bbs.exception.ServiceException;
-import github.qiao712.bbs.mapper.AttachmentMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
 import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.mq.MessageSender;
-import github.qiao712.bbs.mq.MessageType;
 import github.qiao712.bbs.service.*;
 import github.qiao712.bbs.util.HtmlUtil;
 import github.qiao712.bbs.util.PageUtil;
@@ -28,6 +28,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -45,26 +46,19 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     @Autowired
     private SearchService searchService;
     @Autowired
-    private FileService fileService;
-    @Autowired
     private LikeService likeService;
-    @Autowired
-    private AttachmentMapper attachmentMapper;
     @Autowired
     private CommentMapper commentMapper;
     @Autowired
     private SystemConfig systemConfig;
     @Autowired
     private StatisticsService statisticsService;
-    @Autowired
-    private MessageSender messageSender;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
 
     private final String POST_CACHE_KEY_PREFIX = "post-";
     private final int CACHE_EXPIRE_SECONDS = 60;            //缓存过期时间 60s
-    private final int CACHED_POST_LISTS_LENGTH = 200;       //查询贴子列表时，前CACHED_POST_LISTS_LENGTH项从缓存中查询
 
     //Post中允许排序的列
     private final Set<String> columnsCanSorted = new HashSet<>(Arrays.asList("create_time", "score"));
@@ -89,25 +83,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             throw new ServiceException(ResultCode.POST_ERROR, "图片数量超出限制");
         }
 
-        //记录该贴子对图片的引用(记录为该贴子的一个附件)
-        List<Long> imageFileIds = new ArrayList<>(urls.size());
-        for (String url : urls) {
-            FileIdentity imageFileIdentity = fileService.getFileIdentityByUrl(url);
-            if(imageFileIdentity == null) continue;  //为外部链接
-
-            if(Objects.equals(imageFileIdentity.getUploaderId(), currentUser.getId()) && FileService.POST_IMAGE_FILE.equals(imageFileIdentity.getSource())){
-                imageFileIds.add(imageFileIdentity.getId());
-            }
-        }
-        if(!imageFileIds.isEmpty()){
-            attachmentMapper.insertAttachments(post.getId(), null, imageFileIds);
-
-            //引用图片
-            fileService.increaseReferenceCount(imageFileIds, 1);
-        }
-
         //发布添加事件，以同步至ElasticSearch
-        messageSender.sendMessageSync(MessageType.POST_ADD, post.getId().toString(), post);
+        try {
+            searchService.savePost(post);
+        } catch (IOException e) {
+            log.error("储存至ElasticSearch失败");
+        }
         return true;
     }
 
@@ -168,17 +149,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
     @Override
     public boolean removePost(Long postId) {
-        //删除所有附件
-        //文件引用计数-1
-        List<Long> attachmentFileIds = attachmentMapper.selectAttachmentFileIdsOfPost(postId);
-        if(!attachmentFileIds.isEmpty()){
-            fileService.increaseReferenceCount(attachmentFileIds, -1);
-        }
-        //删除attachment记录
-        Attachment attachmentQuery = new Attachment();
-        attachmentQuery.setPostId(postId);
-        attachmentMapper.delete(new QueryWrapper<>(attachmentQuery));
-
         //删除所有评论
         Comment commentQuery = new Comment();
         commentQuery.setPostId(postId);
@@ -186,7 +156,11 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
 
         if(postMapper.deleteById(postId) > 0){
             //发布删除事件，以同步至ElasticSearch
-            messageSender.sendMessageSync(MessageType.POST_DELETE, postId.toString(), postId);
+            try {
+                searchService.removePost(postId);
+            } catch (IOException e) {
+                log.error("ES中删除失败");
+            }
 
             //清除缓存
             redisTemplate.delete(POST_CACHE_KEY_PREFIX+postId);

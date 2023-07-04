@@ -27,5 +27,5 @@ public interface UserService extends IService<User> {
 
     boolean setUserStatus(Long userId, boolean enable);
 
-    boolean setAvatar(Long userId, Long fileId);
+    boolean setAvatar(Long userId, String url);
 }

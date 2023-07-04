@@ -4,12 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.base.PageQuery;
-import github.qiao712.bbs.domain.entity.FileIdentity;
-import github.qiao712.bbs.domain.entity.Forum;
 import github.qiao712.bbs.domain.base.ResultCode;
+import github.qiao712.bbs.domain.entity.Forum;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.ForumMapper;
-import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.ForumService;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +21,10 @@ import java.util.stream.Collectors;
 public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements ForumService {
     @Autowired
     private ForumMapper forumMapper;
-    @Autowired
-    private FileService fileService;
 
     @Override
     public Forum getForum(Long forumId) {
-        Forum forum = forumMapper.selectById(forumId);
-        setLogoUrl(forum);
-        return forum;
+        return forumMapper.selectById(forumId);
     }
 
     @Override
@@ -43,17 +37,12 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
             queryWrapper.eq("category", condition.getCategory());
         }
 
-        IPage<Forum> forumPage = forumMapper.selectPage(pageQuery.getIPage(), queryWrapper);
-        forumPage.getRecords().forEach(this::setLogoUrl);
-
-        return forumPage;
+        return forumMapper.selectPage(pageQuery.getIPage(), queryWrapper);
     }
 
     @Override
     public List<Forum> listAllForums() {
-        List<Forum> forums = forumMapper.selectList(null);
-        forums.forEach(this::setLogoUrl);
-        return forums;
+        return forumMapper.selectList(null);
     }
 
     @Override
@@ -85,24 +74,10 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
     }
 
     @Override
-    public boolean setForumLogo(Long forumId, Long fileId) {
-        //限制图片来源
-        FileIdentity fileIdentity = fileService.getFileIdentity(fileId);
-        if(fileIdentity != null && !Objects.equals(fileIdentity.getSource(), FileService.FORUM_LOGO_IMAGE_FILE)){
-            throw new ServiceException(ResultCode.INVALID_PARAM, "图片非法");
-        }
-
-        //释放原有图片
-        Forum originForum = forumMapper.selectById(forumId);
-        if(originForum == null) return false;
-        fileService.increaseReferenceCount(originForum.getLogoFileId(), -1);
-
-        //引用图片
-        fileService.increaseReferenceCount(fileId, 1);
-
+    public boolean setForumLogo(Long forumId, String logoUrl) {
         Forum forum = new Forum();
         forum.setId(forumId);
-        forum.setLogoFileId(fileId);
+        forum.setLogoUrl(logoUrl);
         return forumMapper.updateById(forum) > 0;
     }
 
@@ -110,14 +85,5 @@ public class ForumServiceImpl extends ServiceImpl<ForumMapper, Forum> implements
         Forum forumQuery = new Forum();
         forumQuery.setName(forumName);
         return forumMapper.selectOne(new QueryWrapper<>(forumQuery));
-    }
-
-    /**
-     * 设置logo url字段
-     */
-    private void setLogoUrl(Forum forum){
-        if(forum != null){
-            forum.setLogoUrl(fileService.getFileUrl(forum.getLogoFileId()));
-        }
     }
 }

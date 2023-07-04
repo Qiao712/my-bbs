@@ -33,7 +33,7 @@ public class User extends BaseEntity {
     private Boolean enable;
 
     @Null(groups = {AddGroup.class, UpdateGroup.class})
-    private Long avatarFileId;
+    private String avatarUrl;
 
     @Email(groups = {AddGroup.class, UpdateGroup.class})
     private String email;
@@ -42,6 +42,4 @@ public class User extends BaseEntity {
 
     @TableField(exist = false)
     private String role;
-    @TableField(exist = false)
-    private String avatarUrl;
 }

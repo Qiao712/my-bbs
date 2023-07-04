@@ -1,6 +1,5 @@
 package github.qiao712.bbs.schedule;
 
-import github.qiao712.bbs.service.FileService;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
 import lombok.extern.slf4j.Slf4j;
@@ -17,20 +16,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j(topic = "schedule")
 public class ScheduleTask {
     @Autowired
-    private FileService fileService;
-    @Autowired
     private StatisticsService statisticsService;
     @Autowired
     private LikeService likeService;
-
-    /**
-     * 每日凌晨执行临时文件清理
-     */
-    @Scheduled(cron = "0 0 0 * * *")
-    public void clearTemporaryFile(){
-        log.info("开始清理临时文件");
-        fileService.clearIdleFile();
-    }
 
     /**
      * 每间隔一定时间同步贴子浏览量至数据库 并 重新计算贴子热度值

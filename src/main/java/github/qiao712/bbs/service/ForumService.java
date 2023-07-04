@@ -24,5 +24,5 @@ public interface ForumService extends IService<Forum> {
      */
     List<String> listCategories();
 
-    boolean setForumLogo(Long forumId, Long fileId);
+    boolean setForumLogo(Long forumId, String logoUrl);
 }

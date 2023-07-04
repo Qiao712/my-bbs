@@ -41,8 +41,8 @@ public class UserController {
     @PreAuthorize("isAuthenticated() and #userId == #currentUser.id and hasAuthority('user:set-avatar')")
     public Result<Void> setMyAvatar(@PathVariable("userId") Long userId,
                                       @AuthenticationPrincipal AuthUser currentUser,
-                                      Long fileId){
-        return Result.build(userService.setAvatar(userId, fileId));
+                                    String avatarUrl){
+        return Result.build(userService.setAvatar(userId, avatarUrl));
     }
 
     @GetMapping("/{userId}")

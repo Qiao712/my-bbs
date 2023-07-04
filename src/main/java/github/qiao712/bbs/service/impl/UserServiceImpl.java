@@ -5,12 +5,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.config.SystemConfig;
 import github.qiao712.bbs.domain.base.PageQuery;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
 import github.qiao712.bbs.domain.dto.UserDto;
-import github.qiao712.bbs.domain.entity.FileIdentity;
 import github.qiao712.bbs.domain.entity.Role;
 import github.qiao712.bbs.domain.entity.User;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.mapper.RoleMapper;
 import github.qiao712.bbs.mapper.UserMapper;
@@ -41,8 +40,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private PasswordEncoder passwordEncoder;
     @Autowired
     private SystemConfig systemConfig;
-    @Autowired
-    private FileService fileService;
 
     /**
      * 实现UserDetailsService的方法，提供用户信息
@@ -74,9 +71,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new ServiceException(ResultCode.USER_ERROR, "该用户名已被注册");
         }
 
-        //TODO: 邮箱注册功能
-        user.setEmail(null);
-
         return userMapper.insert(user) > 0;
     }
 
@@ -88,12 +82,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         //role
         Role role = roleMapper.selectById(user.getRoleId());
         user.setRole(role != null ? role.getName() : null);
-
         user.setPassword(null);
-
-        //头像图片url
-        String avatarUrl = fileService.getFileUrl(user.getAvatarFileId());
-        user.setAvatarUrl(avatarUrl);
         return user;
     }
 
@@ -145,18 +134,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean removeUser(Long userId) {
-        User user = userMapper.selectById(userId);
-        if(user == null) return false;
-        Long avatarFileId = user.getAvatarFileId();
-
-        boolean flag = userMapper.deleteById(userId) > 0;
-
-        //删除头像文件
-        if(flag && avatarFileId != null){
-            fileService.deleteFile(avatarFileId);
-        }
-
-        return flag;
+        return userMapper.deleteById(userId) > 0;
     }
 
     @Override
@@ -168,25 +146,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    @Transactional
-    public boolean setAvatar(Long userId, Long fileId) {
-        //检查图片文件上传来源
-        FileIdentity fileIdentity = fileService.getFileIdentity(fileId);
-        if(fileIdentity != null && !Objects.equals(fileIdentity.getSource(), FileService.USER_AVATAR_IMAGE_FILE)){
-            throw new ServiceException(ResultCode.FILE_ERROR, "图片非法");
-        }
-
-        //释放原头像图片
-        User originUser = userMapper.selectById(userId);
-        if(originUser == null) return false;
-        fileService.increaseReferenceCount(originUser.getAvatarFileId(), -1);
-
-        //引用图片
-        fileService.increaseReferenceCount(fileId, 1);
-
+    public boolean setAvatar(Long userId, String imageUrl) {
         User user = new User();
         user.setId(userId);
-        user.setAvatarFileId(fileId);
+        user.setAvatarUrl(imageUrl);
         return userMapper.updateById(user) > 0;
     }
 
@@ -199,11 +162,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private UserDto convertToUserDto(User user){
         UserDto userDto = new UserDto();
         BeanUtils.copyProperties(user, userDto);
-
-        //查询头像url
-        String avatarUrl = fileService.getFileUrl(user.getAvatarFileId());
-        userDto.setAvatarUrl(avatarUrl);
-
         return userDto;
     }
 }

@@ -31,10 +31,7 @@ public class Forum extends BaseEntity {
     @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 3, max = 10, message = "分类名称长度应在3到10之间")
     private String category;
 
-    @ApiModelProperty("logo图片文件id")
-    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "禁止直接指定logo图片id")
-    private Long logoFileId;
-
-    @TableField(exist = false)
+    @ApiModelProperty("logo图片文件url")
+    @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "禁止直接指定logo图片url")
     private String logoUrl;
 }
