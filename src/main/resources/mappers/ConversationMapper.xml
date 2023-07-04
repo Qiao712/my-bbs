@@ -15,4 +15,10 @@
     <select id="selectPrivateMessage" resultType="PrivateMessage">
         SELECT * FROM t_private_message WHERE id = #{id}
     </select>
+
+    <select id="selectUnreadNumber" resultType="Long">
+        SELECT ifnull(t1.unread, 0) + ifnull(t2.unread, 0) FROM
+            (SELECT SUM(unread_num1) unread FROM t_conversation WHERE user1_id = #{receiverId}) as t1,
+            (SELECT SUM(unread_num2) unread FROM t_conversation WHERE user2_id = #{receiverId}) as t2
+    </select>
 </mapper>

@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -154,7 +155,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<UserDto> listUsers(List<Long> userIds) {
+    public List<UserDto> listUsers(Set<Long> userIds) {
         if(userIds.isEmpty()) return Collections.emptyList();
         return userMapper.selectBatchIds(userIds).stream().map(this::convertToUserDto).collect(Collectors.toList());
     }

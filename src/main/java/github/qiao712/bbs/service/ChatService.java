@@ -32,12 +32,12 @@ public interface ChatService extends IService<PrivateMessage> {
 
     /**
      * 确认与某用户对话消息
-     * 若会话ID为空，则确认全部消息
+     * 若userId为空，则确认全部消息
      */
-    boolean acknowledge(Long userId);
+    void acknowledge(Long senderId);
 
     /**
-     * 获取未读的私信消息数量
+     * 获取当前用户未读的私信消息数量
      */
-    Long getUnacknowledgedPrivateMessageCount();
+    Long getUnreadNumber();
 }

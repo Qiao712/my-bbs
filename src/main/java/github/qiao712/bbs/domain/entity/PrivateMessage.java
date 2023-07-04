@@ -28,8 +28,6 @@ public class PrivateMessage implements Serializable {
     @ApiModelProperty("消息的类型(0:文本消息)")
     private Integer type;
 
-    private Boolean isAcknowledged;
-
     private String content;
 
     @ApiModelProperty("即发送时间")

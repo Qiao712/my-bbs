@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 public interface UserService extends IService<User> {
     boolean register(User user);
@@ -21,7 +22,7 @@ public interface UserService extends IService<User> {
 
     IPage<UserDto> listUsers(PageQuery pageQuery, UserDto condition);
 
-    List<UserDto> listUsers(List<Long> userIds);
+    List<UserDto> listUsers(Set<Long> userIds);
 
     boolean removeUser(Long userId);
 

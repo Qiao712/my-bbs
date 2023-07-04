@@ -8,4 +8,6 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ConversationMapper extends BaseMapper<Conversation> {
     IPage<Conversation> selectConversations(IPage<Conversation> page, Long userId);
+
+    Long selectUnreadNumber(Long receiverId);
 }

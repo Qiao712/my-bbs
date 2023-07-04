@@ -33,6 +33,12 @@ public class Conversation implements Serializable {
     @ApiModelProperty("最后一条消息的时间")
     private LocalDateTime lastMessageTime;
 
+    @ApiModelProperty("user1未读消息数量")
+    private Integer unreadNum1;
+
+    @ApiModelProperty("user2未读消息数量")
+    private Integer unreadNum2;
+
     @TableField(exist = false)
     private PrivateMessage lastMessage;
 }
