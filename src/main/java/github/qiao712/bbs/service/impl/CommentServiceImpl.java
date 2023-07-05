@@ -7,17 +7,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.dto.UserDto;
-import github.qiao712.bbs.domain.dto.message.ReplyMessageContent;
+import github.qiao712.bbs.domain.entity.Answer;
 import github.qiao712.bbs.domain.entity.Comment;
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import github.qiao712.bbs.domain.entity.User;
 import github.qiao712.bbs.exception.ServiceException;
+import github.qiao712.bbs.mapper.AnswerMapper;
 import github.qiao712.bbs.mapper.CommentMapper;
-import github.qiao712.bbs.mapper.PostMapper;
-import github.qiao712.bbs.service.*;
+import github.qiao712.bbs.mapper.QuestionMapper;
+import github.qiao712.bbs.service.CommentService;
+import github.qiao712.bbs.service.LikeService;
+import github.qiao712.bbs.service.UserService;
 import github.qiao712.bbs.util.PageUtil;
 import github.qiao712.bbs.util.SecurityUtil;
 import org.springframework.beans.BeanUtils;
@@ -34,71 +36,40 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private CommentMapper commentMapper;
     @Autowired
-    private PostMapper postMapper;
+    private AnswerMapper answerMapper;
     @Autowired
     private UserService userService;
     @Autowired
     private LikeService likeService;
-    @Autowired
-    private StatisticsService statisticsService;
-    @Autowired
-    private MessageService messageService;
 
     @Override
     public boolean addComment(Comment comment) {
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         comment.setAuthorId(currentUser.getId());
 
-        QueryWrapper<Post> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", comment.getPostId());
-        if(!postMapper.exists(queryWrapper)){
-            throw new ServiceException(ResultCode.INVALID_PARAM, "贴子不存在");
+        QueryWrapper<Answer> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("id", comment.getAnswerId());
+        if(!answerMapper.exists(queryWrapper)){
+            throw new ServiceException(ResultCode.INVALID_PARAM, "回答不存在");
         }
 
-        //若该评论回复一个一级评论
+        //若该评论回复另一个评论,校验
         if(comment.getRepliedId() != null){
             Comment repliedComment = commentMapper.selectById(comment.getRepliedId());
-            if(repliedComment == null || !repliedComment.getPostId().equals(comment.getPostId())){
+            if(repliedComment == null || !repliedComment.getAnswerId().equals(comment.getAnswerId())){
                 throw new ServiceException(ResultCode.INVALID_PARAM, "被回复的评论不存在");
-            }
-
-            //设置二级评论的parentId
-            if(repliedComment.getParentId() != null){
-                //被回复的评论为一个二级评论，指向同一个一级评论
-                comment.setParentId(repliedComment.getParentId());
-            }else{
-                //被回复的评论为一个一级评论，指向该一级评论
-                comment.setParentId(repliedComment.getId());
             }
         }
 
         //创建评论，获取主键(插入附加时使用)
-        boolean flag = commentMapper.insert(comment) > 0;
-
-        //贴子评论数+1
-        postMapper.increaseCommentCount(comment.getPostId(), 1L);
-
-        //发送评论/回复消息
-        sendCommentNoticeMessage(comment);
-
-        //标记贴子需要刷新热度值
-        statisticsService.markPostToFreshScore(comment.getPostId());
-
-        return flag;
+        return commentMapper.insert(comment) > 0;
     }
 
     @Override
-    public IPage<CommentDto> listComments(PageQuery pageQuery, Long postId, Long parentCommentId) {
-        QueryWrapper<Comment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("post_id", postId);
-        queryWrapper.orderByAsc("create_time");
-        if(parentCommentId != null){
-            //查询父评论id为parentCommentId的所有评论
-            queryWrapper.eq("parent_id", parentCommentId);
-        }else{
-            //查询一级评论
-            queryWrapper.isNull("parent_id");
-        }
+    public IPage<CommentDto> listComments(PageQuery pageQuery, Long answerId) {
+        LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Comment::getAnswerId, answerId);
+        queryWrapper.orderByAsc(Comment::getCreateTime);
         IPage<Comment> commentPage = commentMapper.selectPage(pageQuery.getIPage(), queryWrapper);
         List<Comment> comments = commentPage.getRecords();
 
@@ -144,39 +115,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     }
 
     @Override
-    public IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, Long authorId) {
-        return commentMapper.listCommentDetailDtos(pageQuery.getIPage(), authorId);
-    }
-
-    @Override
     public boolean removeComment(Long commentId) {
-        Comment comment = commentMapper.selectById(commentId);
-        if(comment == null) return false;
-
-        List<Long> commentsToDelete = new ArrayList<>();
-        if(comment.getParentId() == null){  //该评论为一级评论
-            //需要删除的子评论
-            LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.select(Comment::getId).eq(Comment::getParentId, commentId);
-            commentsToDelete = commentMapper.selectList(queryWrapper).stream().map(Comment::getId).collect(Collectors.toList());
-        }else{  //二级评论(二级评论无图片)
-            //删除回复其的评论
-            LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.select(Comment::getId).eq(Comment::getRepliedId, commentId);
-            commentsToDelete = commentMapper.selectList(queryWrapper).stream().map(Comment::getId).collect(Collectors.toList());
-        }
-        commentsToDelete.add(commentId);
-
-        //更新评论数量
-        postMapper.increaseCommentCount(comment.getPostId(), (long) - commentsToDelete.size());
-
-        //标记贴子需要刷新热度值
-        statisticsService.markPostToFreshScore(comment.getPostId());
-
-        //删除提示消息
-        messageService.removeMessages(null, null, ReplyMessageContent.class, commentsToDelete.stream().map(String::valueOf).collect(Collectors.toList()));
-
-        return commentMapper.deleteBatchIds(commentsToDelete) > 0;
+        return commentMapper.deleteById(commentId) > 0;
     }
 
     @Override
@@ -185,44 +125,5 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         commentQuery.setId(commentId);
         commentQuery.setAuthorId(userId);
         return commentMapper.exists(new QueryWrapper<>(commentQuery));
-    }
-
-    /**
-     * 发送评论提醒消息
-     */
-    private void sendCommentNoticeMessage(Comment comment){
-        ReplyMessageContent messageContent = new ReplyMessageContent();
-
-        messageContent.setCommentId(comment.getId());
-        messageContent.setComment(comment.getContent());
-        messageContent.setAuthorId(comment.getAuthorId());
-        messageContent.setAuthorUsername(userService.getUsername(comment.getAuthorId()));
-        messageContent.setPostId(comment.getPostId());
-
-        //设置贴子标题
-        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Post::getId, comment.getPostId());
-        queryWrapper.select(Post::getTitle, Post::getAuthorId);
-        Post post = postMapper.selectOne(queryWrapper);
-        messageContent.setPostTitle(post.getTitle());
-
-        //消息接收者
-        Long receiverId = null;
-        if(comment.getRepliedId() != null){
-            //接收者为被回复评论的作者
-            LambdaQueryWrapper<Comment> commentQueryWrapper = new LambdaQueryWrapper<>();
-            commentQueryWrapper.select(Comment::getAuthorId);
-            commentQueryWrapper.eq(Comment::getId, comment.getRepliedId());
-            Comment repliedComment = commentMapper.selectOne(commentQueryWrapper);
-            receiverId = repliedComment.getAuthorId();
-        }else{
-            //接收者为贴子作者
-            receiverId = post.getAuthorId();
-        }
-
-        if(!Objects.equals(receiverId, comment.getAuthorId())){
-            //使用评论的id作为消息的key，以便快速检索删除
-            messageService.sendMessage(comment.getAuthorId(), receiverId, comment.getId().toString(), messageContent);
-        }
     }
 }

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="github.qiao712.bbs.mapper.CommentMapper">
+<mapper namespace="github.qiao712.bbs.mapper.AnswerMapper">
     <update id="increaseLikeCount">
-        UPDATE t_comment SET like_count = like_count + #{delta} WHERE id = #{commentId}
+        UPDATE t_answer SET like_count = like_count + #{delta} WHERE id = #{answerId}
     </update>
 
     <select id="existsById" resultType="Boolean">
-        SELECT EXISTS(SELECT * FROM t_comment WHERE id = #{commentId}) AS e
+        SELECT EXISTS(SELECT * FROM t_answer WHERE id = #{answerId}) AS e
     </select>
 </mapper>

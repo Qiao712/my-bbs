@@ -1,10 +1,8 @@
 package github.qiao712.bbs.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import github.qiao712.bbs.domain.base.ResultCode;
-import github.qiao712.bbs.domain.entity.Post;
-import github.qiao712.bbs.exception.ServiceException;
-import github.qiao712.bbs.mapper.PostMapper;
+import github.qiao712.bbs.domain.entity.Question;
+import github.qiao712.bbs.mapper.QuestionMapper;
 import github.qiao712.bbs.service.LikeService;
 import github.qiao712.bbs.service.StatisticsService;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +22,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     @Autowired
     private StringRedisTemplate redisTemplate;
     @Autowired
-    private PostMapper postMapper;
+    private QuestionMapper questionMapper;
     @Autowired
     private LikeService likeService;
 
@@ -36,7 +34,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final LocalDateTime POST_EPOCH = LocalDateTime.of(2022, 7,12,0,0,0);
 
     @Override
-    public void increasePostViewCount(long postId) {
+    public void increaseQuestionViewCount(long postId) {
         try{
             redisTemplate.opsForHash().increment(POST_VIEW_COUNT_TABLE, String.valueOf(postId), 1);
         }catch (RuntimeException e){
@@ -46,7 +44,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public void markPostToFreshScore(long postId) {
+    public void markQuestionToFreshScore(long postId) {
         try {
             redisTemplate.opsForSet().add(POST_SCORE_REFRESH_TABLE, String.valueOf(postId));
         }catch (RuntimeException e){
@@ -55,35 +53,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public List<Long> listPostViewCounts(List<Long> postIds) {
-        List<Long> viewCounts = postMapper.selectViewCountBatch(postIds);
-        if(viewCounts.size() != postIds.size()){
-            throw new ServiceException(ResultCode.INVALID_PARAM, "包含无效PostId");
-        }
-
-        //redis中的一部分
-        List<String> postKeys = new ArrayList<>(postIds.size());
-        for (Long postId : postIds) {
-            postKeys.add(postId.toString());
-        }
-        HashOperations<String, String, String> hashOps = redisTemplate.opsForHash();
-        List<String> viewCountDeltas = hashOps.multiGet(POST_VIEW_COUNT_TABLE, postKeys);
-        if(viewCounts.size() != viewCountDeltas.size()){
-            throw new RuntimeException("从Redis中获取浏览量失败");
-        }
-
-        //加上redis中缓存的增量
-        for(int i = 0; i < viewCounts.size(); i++){
-            if(viewCountDeltas.get(i) != null){
-                viewCounts.set(i, viewCounts.get(i) + Long.parseLong(viewCountDeltas.get(i)));
-            }
-        }
-
-        return viewCounts;
-    }
-
-    @Override
-    public void syncPostViewCount() {
+    public void syncQuestionViewCount() {
         log.info("同步贴子浏览量: 开始");
 
         final int BATCH_SIZE = 1000;    //收集多少条插入一次数据库
@@ -104,7 +74,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
                 //同步至数据库
                 for (Map.Entry<String, String> entry : entries) {
-                    postMapper.increaseViewCount(Long.parseLong(entry.getKey()), Long.parseLong(entry.getValue()));
+                    questionMapper.increaseViewCount(Long.parseLong(entry.getKey()), Long.parseLong(entry.getValue()));
                 }
                 entries.clear();
             }
@@ -115,7 +85,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
 
     @Override
-    public void refreshPostScores(){
+    public void refreshQuestionScores(){
         log.info("贴子热度刷新: 开始");
 
         final int BATCH_SIZE = 1000;
@@ -140,7 +110,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
                 //重新计算并保存贴子热度
                 if(!postIds.isEmpty()){
-                    updatePostScore(postIds);
+                    updateQuestionScore(postIds);
                 }
                 postIds.clear();
             }
@@ -153,15 +123,15 @@ public class StatisticsServiceImpl implements StatisticsService {
      * 计算贴子热度分数，并更新
      */
     @Override
-    public void updatePostScore(List<Long> postIds) {
-        LambdaQueryWrapper<Post> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.select(Post::getId, Post::getCreateTime, Post::getLikeCount, Post::getViewCount, Post::getCommentCount);
-        queryWrapper.in(Post::getId, postIds);
-        List<Post> posts = postMapper.selectList(queryWrapper);
+    public void updateQuestionScore(List<Long> postIds) {
+        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.select(Question::getId, Question::getCreateTime, Question::getLikeCount, Question::getViewCount, Question::getAnswerCount);
+        queryWrapper.in(Question::getId, postIds);
+        List<Question> questions = questionMapper.selectList(queryWrapper);
 
-        for (Post post : posts) {
-            Long score = computePostScore(likeService.getPostLikeCount(post.getId()), post.getCommentCount(), post.getViewCount(), post.getCreateTime());
-            postMapper.updateScore(post.getId(), score);
+        for (Question question : questions) {
+            Long score = computeQuestionScore(question.getLikeCount(), question.getAnswerCount(), question.getViewCount(), question.getCreateTime());
+            questionMapper.updateScore(question.getId(), score);
         }
     }
 
@@ -169,7 +139,7 @@ public class StatisticsServiceImpl implements StatisticsService {
      * 计算贴子热度分值
      */
     @Override
-    public Long computePostScore(long likeCount, long commentCount, long viewCount, LocalDateTime createTime){
+    public Long computeQuestionScore(long likeCount, long commentCount, long viewCount, LocalDateTime createTime){
         //10个赞可以相当于1分钟
         //2个评论可以相当于1分钟
         return likeCount/10L + commentCount/2L + viewCount/30L + Duration.between(POST_EPOCH, createTime).toMinutes();

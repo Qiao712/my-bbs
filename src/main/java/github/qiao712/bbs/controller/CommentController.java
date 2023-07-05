@@ -4,11 +4,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import github.qiao712.bbs.domain.AddGroup;
 import github.qiao712.bbs.domain.base.PageQuery;
 import github.qiao712.bbs.domain.base.Result;
+import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.domain.dto.AuthUser;
-import github.qiao712.bbs.domain.dto.CommentDetailDto;
 import github.qiao712.bbs.domain.dto.CommentDto;
 import github.qiao712.bbs.domain.entity.Comment;
-import github.qiao712.bbs.domain.base.ResultCode;
 import github.qiao712.bbs.exception.ServiceException;
 import github.qiao712.bbs.service.CommentService;
 import github.qiao712.bbs.service.LikeService;
@@ -34,14 +33,8 @@ public class CommentController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('comment:list')")
-    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long postId, Long parentCommentId){
-        return Result.succeed(commentService.listComments(pageQuery, postId, parentCommentId));
-    }
-
-    @GetMapping("/my")
-    @PreAuthorize("isAuthenticated() and hasAuthority('comment:list:mine')")
-    public Result<IPage<CommentDetailDto>> listMyComments(@Validated PageQuery pageQuery, @AuthenticationPrincipal AuthUser authUser){
-        return Result.succeed(commentService.listCommentsByAuthor(pageQuery, authUser.getId()));
+    public Result<IPage<CommentDto>> listComments(@Validated PageQuery pageQuery, Long answerId){
+        return Result.succeed(commentService.listComments(pageQuery, answerId));
     }
 
     @DeleteMapping("/{commentId}")

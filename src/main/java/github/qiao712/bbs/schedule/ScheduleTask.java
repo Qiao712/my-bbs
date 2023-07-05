@@ -25,16 +25,7 @@ public class ScheduleTask {
      */
     @Scheduled(fixedDelay = 3600, timeUnit = TimeUnit.SECONDS)
     public void refreshPost(){
-        statisticsService.syncPostViewCount();
-        statisticsService.refreshPostScores();
-    }
-
-    /**
-     * 定时同步点赞量至数据库
-     */
-    @Scheduled(fixedDelay = 2, timeUnit = TimeUnit.HOURS)
-    public void syncLikeCount(){
-        likeService.syncPostLikeCount();
-        likeService.syncCommentLikeCount();
+        statisticsService.syncQuestionViewCount();
+        statisticsService.refreshQuestionScores();
     }
 }

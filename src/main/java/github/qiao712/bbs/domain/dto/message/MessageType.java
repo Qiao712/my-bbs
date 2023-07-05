@@ -7,7 +7,7 @@ public class MessageType {
     private static final Map<String, Class<? extends MessageContent>> classMap = new HashMap<>();
     static {
         classMap.put("private", PrivateMessageContent.class);
-        classMap.put("reply", ReplyMessageContent.class);
+        classMap.put("answer", AnswerMessageContent.class);
     }
 
     public static Class<? extends MessageContent> getMessageContentTypeClass(String typeName){

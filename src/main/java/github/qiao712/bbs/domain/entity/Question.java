@@ -14,11 +14,11 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Null;
 
-@TableName("t_post")
-@ApiModel(value = "Post对象", description = "贴子")
+@TableName("t_question")
+@ApiModel(value = "问题对象", description = "问题")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class Post extends BaseEntity {
+public class Question extends BaseEntity {
     @ApiModelProperty("标题")
     @NotBlank(groups = AddGroup.class, message = "标题不可为空")
     @Length(max = 100, message = "标题长度超出限制")
@@ -35,7 +35,7 @@ public class Post extends BaseEntity {
 
     @ApiModelProperty("所属板块")
     @NotNull(groups = AddGroup.class, message = "所属板块不可为空")
-    private Long forumId;
+    private Long categoryId;
 
     @ApiModelProperty("点赞数")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定点赞数量")
@@ -47,7 +47,7 @@ public class Post extends BaseEntity {
 
     @ApiModelProperty
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定评论数量")
-    private Long commentCount;
+    private Long answerCount;
 
     @ApiModelProperty("热度分值")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定贴子热度分值")

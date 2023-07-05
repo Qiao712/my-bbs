@@ -1,13 +1,12 @@
 package github.qiao712.bbs;
 
-import github.qiao712.bbs.domain.entity.Post;
+import github.qiao712.bbs.domain.entity.Question;
 import github.qiao712.bbs.service.SearchService;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -64,14 +63,14 @@ public class TestElasticSearch {
 
     @Test
     public void testUpdatePostDoc() throws IOException {
-        Post post = new Post();
-        post.setId(1L);
+        Question question = new Question();
+        question.setId(1L);
 //        post.setContent("<p>Hello, wowowow<p/>");
 //        post.setForumId(123L);
 //        post.setAuthorId(222L);
-        post.setTitle("He2222222llo nonono");
+        question.setTitle("He2222222llo nonono");
 //        post.setUpdateTime(LocalDateTime.now());
-        searchService.updatePost(post);
+        searchService.updatePost(question);
     }
 
     @Test

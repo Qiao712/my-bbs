@@ -6,18 +6,4 @@
             EXISTS (SELECT * FROM t_comment_like WHERE user_id = #{userId} AND comment_id = #{commentId})
         ) liked
     </select>
-
-    <insert id="insertCommentLikes">
-        INSERT IGNORE INTO t_comment_like(comment_id, user_id) VALUES
-        <foreach collection="commentLikes" separator="," item="commentLike">
-            (#{commentLike.commentId}, #{commentLike.userId})
-        </foreach>
-    </insert>
-
-    <delete id="deleteCommentLikes">
-        DELETE FROM t_comment_like WHERE (comment_id, user_id) IN
-        <foreach collection="commentLikes" separator="," item="commentLike" open="(" close=")">
-            (#{commentLike.commentId}, #{commentLike.userId})
-        </foreach>
-    </delete>
 </mapper>
