@@ -22,7 +22,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/api/questions")
 public class QuestionController {
     @Autowired
     private QuestionService questionService;
@@ -30,34 +30,34 @@ public class QuestionController {
     private LikeService likeService;
 
     @PostMapping
-    @PreAuthorize("isAuthenticated() and hasAuthority('post:add')")
+    @PreAuthorize("isAuthenticated() and hasAuthority('question:add')")
     public Result<Void> addQuestion(@Validated(AddGroup.class) @RequestBody Question question){
         return Result.build(questionService.addQuestion(question));
     }
 
-    @GetMapping("/{postId}")
-    @PreAuthorize("hasAuthority('post:get')")
-    public Result<QuestionDto> getQuestion(@PathVariable("postId") Long questionId){
+    @GetMapping("/{questionId}")
+    @PreAuthorize("hasAuthority('question:get')")
+    public Result<QuestionDto> getQuestion(@PathVariable("questionId") Long questionId){
         return Result.succeedNotNull(questionService.getQuestion(questionId));
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('post:list')")
+    @PreAuthorize("hasAuthority('question:list')")
     public Result<IPage<QuestionDto>> listQuestions(@Validated PageQuery pageQuery, Long categoryId, Long authorId){
         return Result.succeed(questionService.listQuestion(pageQuery, categoryId, authorId));
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAuthority('post:search')")
+    @PreAuthorize("hasAuthority('question:search')")
     public Result<IPage<QuestionDto>> searchQuestions(@Validated PageQuery pageQuery,
                                                       @NotNull @NotBlank @Length(max = 30) String text,
                                                       Long authorId, Long categoryId){
         return Result.succeed(questionService.searchQuestion(pageQuery, text, categoryId, authorId));
     }
 
-    @DeleteMapping("/{postId}")
-    @PreAuthorize("isAuthenticated() and hasAuthority('post:remove:mine')")
-    public Result<Void> removeMyQuestion(@PathVariable("postId") Long questionId, @AuthenticationPrincipal AuthUser currentUser){
+    @DeleteMapping("/{questionId}")
+    @PreAuthorize("isAuthenticated() and hasAuthority('question:remove:mine')")
+    public Result<Void> removeMyQuestion(@PathVariable("questionId") Long questionId, @AuthenticationPrincipal AuthUser currentUser){
         if(!questionService.isAuthor(questionId, currentUser.getId())){
             throw new ServiceException(ResultCode.NO_PERMISSION, "无权删除评论");
         }
@@ -65,16 +65,16 @@ public class QuestionController {
     }
 
     //-----------------------------------------
-    @GetMapping("/{postId}/like")
-    @PreAuthorize("isAuthenticated() and hasAuthority('post:like')")
-    public Result<Void> likeQuestion(@PathVariable("postId") Long questionId){
+    @GetMapping("/{questionId}/like")
+    @PreAuthorize("isAuthenticated() and hasAuthority('question:like')")
+    public Result<Void> likeQuestion(@PathVariable("questionId") Long questionId){
         likeService.likeQuestion(questionId, true);
         return Result.succeed();
     }
 
-    @GetMapping("/{postId}/undo-like")
-    @PreAuthorize("isAuthenticated() and hasAuthority('post:like')")
-    public Result<Void> undoLikeQuestion(@PathVariable("postId") Long questionId){
+    @GetMapping("/{questionId}/undo-like")
+    @PreAuthorize("isAuthenticated() and hasAuthority('question:like')")
+    public Result<Void> undoLikeQuestion(@PathVariable("questionId") Long questionId){
         likeService.likeQuestion(questionId, false);
         return Result.succeed();
     }

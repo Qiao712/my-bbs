@@ -101,7 +101,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             commentDto.setAuthor(userDtoMap.get(comment.getAuthorId()));
 
             //user replied
-            commentDto.setRepliedUserName(authorUsernameMap.get(comment.getRepliedId()));
+            Long repliedId = comment.getRepliedId();
+            if(repliedId != null){
+                String repliedUser = authorUsernameMap.get(repliedId);
+                commentDto.setRepliedUserName(repliedUser != null ? repliedUser : "[评论已被删除]");
+            }
 
             //当前用户是否点赞
             commentDto.setLiked(likeService.hasLikedComment(comment.getId(), currentUserId));

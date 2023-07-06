@@ -44,9 +44,15 @@ public class AnswerController {
         return Result.succeed(answerService.listAnswers(pageQuery, questionId));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasAuthority('answer:list')")
+    public Result<IPage<Answer>> listMyAnswers(@Validated PageQuery pageQuery, @AuthenticationPrincipal AuthUser currentUser){
+        return Result.succeed(answerService.listAnswersByAuthor(pageQuery, currentUser.getId()));
+    }
+
     @DeleteMapping("/{answerId}")
     @PreAuthorize("isAuthenticated() and hasAuthority('answer:remove:mine')")
-    public Result<Void> removeMyComment(@PathVariable("answerId") Long answerId, @AuthenticationPrincipal AuthUser currentUser){
+    public Result<Void> removeMyAnswer(@PathVariable("answerId") Long answerId, @AuthenticationPrincipal AuthUser currentUser){
         if(!answerService.isAuthor(answerId, currentUser.getId())){
             throw new ServiceException(ResultCode.NO_PERMISSION, "无权删除答案");
         }

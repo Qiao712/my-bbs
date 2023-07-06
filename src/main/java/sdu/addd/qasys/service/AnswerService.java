@@ -22,7 +22,7 @@ public interface AnswerService extends IService<Answer> {
      * 根据作者用户名获取评论
      * @return CommentDetailDto 附加贴子标题，板块，被回复者名
      */
-//    IPage<CommentDetailDto> listCommentsByAuthor(PageQuery pageQuery, Long authorId);
+    IPage<Answer> listAnswersByAuthor(PageQuery pageQuery, Long id);
 
     /**
      * 删除评论

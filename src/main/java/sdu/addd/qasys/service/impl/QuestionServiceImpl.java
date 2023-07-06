@@ -155,7 +155,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
         //板块名称
         Category category = categoryService.getById(question.getCategoryId());
-        questionDto.setCategoryName(category.getName());
+        if(category != null){
+            questionDto.setCategoryName(category.getName());
+        }
 
         //当前用户是否已点赞
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;

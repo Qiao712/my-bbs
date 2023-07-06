@@ -12,25 +12,25 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/forums")
+@RequestMapping("/api/categories")
 public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    @GetMapping("/{forumId}")
-    @PreAuthorize("hasAuthority('forum:get')")
-    public Result<Category> getCategory(@PathVariable("forumId") Long forumId){
-        return Result.succeedNotNull(categoryService.getCategory(forumId));
+    @GetMapping("/{categoryId}")
+    @PreAuthorize("hasAuthority('category:get')")
+    public Result<Category> getCategory(@PathVariable("categoryId") Long categoryId){
+        return Result.succeedNotNull(categoryService.getCategory(categoryId));
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('forum:list')")
+    @PreAuthorize("hasAuthority('category:list')")
     public Result<IPage<Category>> listCategories(PageQuery pageQuery, Category category){
         return Result.succeed(categoryService.listCategories(pageQuery, category));
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAuthority('forum:list')")
+    @PreAuthorize("hasAuthority('category:list')")
     public Result<List<Category>> listAllCategories(){
         return Result.succeed(categoryService.listAllCategories());
     }

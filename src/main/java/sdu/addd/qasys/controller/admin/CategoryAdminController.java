@@ -13,38 +13,38 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/forums")
+@RequestMapping("/api/admin/categories")
 public class CategoryAdminController {
     @Autowired
     private CategoryService categoryService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('admin:forum:add')")
+    @PreAuthorize("hasAuthority('admin:category:add')")
     public Result<Void> addCategory(@Validated(AddGroup.class) @RequestBody Category category){
         return Result.build(categoryService.addCategory(category));
     }
 
-    @DeleteMapping("/{forumId}")
-    @PreAuthorize("hasAuthority('admin:forum:add')")
-    public Result<Void> removeCategory(@PathVariable("forumId") Long forumId){
-        return Result.build(categoryService.removeById(forumId));
+    @DeleteMapping("/{categoryId}")
+    @PreAuthorize("hasAuthority('admin:category:add')")
+    public Result<Void> removeCategory(@PathVariable("categoryId") Long categoryId){
+        return Result.build(categoryService.removeById(categoryId));
     }
 
     @PutMapping
-    @PreAuthorize("hasAuthority('admin:forum:update')")
+    @PreAuthorize("hasAuthority('admin:category:update')")
     public Result<Void> updateCategory(@Validated(UpdateGroup.class) @RequestBody Category category){
         return Result.build(categoryService.updateCategory(category));
     }
 
     @GetMapping("/categories")
-    @PreAuthorize("hasAuthority('admin:forum:category:list')")
+    @PreAuthorize("hasAuthority('admin:category:list')")
     public Result<List<String>> listCategories(){
         return Result.succeed(categoryService.listCategories());
     }
 
-    @PutMapping("/{forumId}/logo")
-    @PreAuthorize("hasAuthority('admin:forum:logo:update')")
-    public Result<Void> setCategoryLogo(@PathVariable Long forumId, String logoUrl){
-        return Result.build(categoryService.setCategoryLogo(forumId, logoUrl));
+    @PutMapping("/{categoryId}/logo")
+    @PreAuthorize("hasAuthority('admin:category:logo:update')")
+    public Result<Void> setCategoryLogo(@PathVariable Long categoryId, String logoUrl){
+        return Result.build(categoryService.setCategoryLogo(categoryId, logoUrl));
     }
 }

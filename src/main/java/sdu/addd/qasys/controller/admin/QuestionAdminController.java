@@ -10,14 +10,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin/posts")
+@RequestMapping("/api/admin/questions")
 public class QuestionAdminController {
     @Autowired
     private QuestionService questionService;
 
-    @DeleteMapping("/{postId}")
-    @PreAuthorize("hasAuthority('admin:post:remove')")
-    public Result<Void> removePost(@PathVariable("postId") Long postId){
-        return Result.build(questionService.removeQuestion(postId));
+    @DeleteMapping("/{questionId}")
+    @PreAuthorize("hasAuthority('admin:question:remove')")
+    public Result<Void> removeQuestion(@PathVariable("questionId") Long questionId){
+        return Result.build(questionService.removeQuestion(questionId));
     }
 }
