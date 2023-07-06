@@ -40,5 +40,5 @@ public interface SearchService {
     /**
      * 将数据库中所有问题同步到索引库
      */
-    void syncAllPosts();
+    void syncAllQuestion();
 }

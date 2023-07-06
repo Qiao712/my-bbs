@@ -53,7 +53,7 @@ public class TestElasticSearch {
 
     @Test
     public void testSyncAllPost(){
-        searchService.syncAllPosts();
+        searchService.syncAllQuestion();
     }
 
     @Test

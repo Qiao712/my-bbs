@@ -61,7 +61,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     private RestHighLevelClient restClient;
 
     //索引库名称
-    private static final String POST_INDEX = "post";
+    private static final String POST_INDEX = "question";
 
     //可以排序的字段
     private static final Set<String> sortableFields = new HashSet<>();
@@ -185,7 +185,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
             boolQueryBuilder.filter(QueryBuilders.termQuery("authorId", authorId));           //指定作者
         }
         if(categoryId != null){
-            boolQueryBuilder.filter(QueryBuilders.termQuery("forumId", categoryId));             //指定板块
+            boolQueryBuilder.filter(QueryBuilders.termQuery("categoryId", categoryId));             //指定板块
         }
 
         //设置分页
@@ -252,7 +252,7 @@ public class SearchServiceImpl implements SearchService, InitializingBean, Dispo
     }
 
     @Override
-    public void syncAllPosts() {
+    public void syncAllQuestion() {
         Page<Question> postPage = new Page<>(1, 100);
 
         do{

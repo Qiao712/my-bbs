@@ -57,6 +57,6 @@ sys:
   # ElasticSearch地址
   elastic-search:
     hosts:
-      - localhost:9200
+      - 114.116.245.83:9200
     username: elastic
-    password: 78787855
+    password: lty0712

@@ -22,7 +22,7 @@
                 "type":"long"
             },
 
-            "forumId":{
+            "categoryId":{
                 "type":"long"
             },
 
