@@ -34,7 +34,7 @@ spring:
 
 mybatis-plus:
   mapper-locations: classpath:mappers/*.xml
-  type-aliases-package: github.qiao712.bbs.domain.entity
+  type-aliases-package: sdu.addd.qasys.entity
   configuration:
     map-underscore-to-camel-case: true
 

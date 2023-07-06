@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="github.qiao712.bbs.mapper.PrivateMessageMapper">
+<mapper namespace="sdu.addd.qasys.mapper.PrivateMessageMapper">
     <select id="selectPrivateMessages" resultType="PrivateMessage">
         SELECT * FROM t_private_message
         WHERE conversation_id = #{conversationId}
