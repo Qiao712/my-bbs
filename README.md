@@ -35,7 +35,7 @@
 
 ## 功能列表
 ### 发帖系统
-* 贴子
+* 问题
   * [x] 发布（支持富文本编辑，插入图片）
     * [x] 图片数量限制
     * [x] 富文本内容XSS防御(在前端进行过滤)
@@ -53,7 +53,7 @@
     * [ ] 优化浏览量记录
   * [ ] *审核(后台管理)*
   
-* 评论
+* 评论/回答
   * [x] 发布
     * [x] 图片数量限制
     * [ ] 临时图片的使用、管理
@@ -117,3 +117,54 @@
 
 ### 其他
 - [ ] 用户文件上传限制
+
+### 
+* 我：
+  * 基础框架
+  * 权限系统
+    * AuthenticationService
+    * UserService
+    * RoleService
+* 通神：
+  * 答案评论编辑发布浏览
+    * AnswerService
+    * CommentService
+    * LikeService
+* 清哥：
+  * 问题编辑发布浏览
+    * StaticsService
+    * QuestionService
+* 杰瑞：
+  * 私聊
+    * ChatService
+  * 消息提示
+    * MessageService
+* 分神：
+  * 搜索
+    * SearchService
+  * 文件上传系统OSS
+    * FileService
+
+* 猪哥
+  * 分类管理（后端接口）
+    * CategoryService
+  * 
+---------
+
+* 问题编辑发布浏览
+  * StaticsService
+  * QuestionService
+  * CategoryService
+* 点赞系统
+  * LikeService
+* 答案评论编辑发布浏览
+  * AnswerService
+  * CommentService
+* 私聊
+  * ChatService
+* 消息提示
+  * MessageService
+* 搜索
+  * SearchService
+* 文件上传系统OSS
+  * FileService
