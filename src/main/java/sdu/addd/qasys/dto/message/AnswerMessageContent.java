@@ -10,6 +10,7 @@ public class AnswerMessageContent implements MessageContent {
     private Long questionId;
     private String questionTitle;
     private Long authorId;
+    private String answer;
     private String authorUsername;
     private Long answerId;
 }

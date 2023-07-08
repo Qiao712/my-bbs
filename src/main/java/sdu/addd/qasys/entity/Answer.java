@@ -37,7 +37,7 @@ public class Answer implements Serializable {
     private Long id;
 
     @NotBlank(groups = {AddGroup.class, UpdateGroup.class}, message = "内容不许为空")
-    @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 1000, message = "长度超出限制")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 1000000, message = "长度超出限制")
     private String content;
 
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定作者")

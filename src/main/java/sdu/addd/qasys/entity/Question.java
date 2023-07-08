@@ -26,7 +26,7 @@ public class Question extends BaseEntity {
 
     @ApiModelProperty("内容")
     @NotBlank(groups = AddGroup.class, message = "内容不可为空")
-    @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 65535, message = "内容长度超出限制")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, max = 655350000, message = "内容长度超出限制")
     private String content;
 
     @ApiModelProperty("发布者")

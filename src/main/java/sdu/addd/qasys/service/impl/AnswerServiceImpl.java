@@ -22,6 +22,7 @@ import sdu.addd.qasys.service.AnswerService;
 import sdu.addd.qasys.service.MessageService;
 import sdu.addd.qasys.service.StatisticsService;
 import sdu.addd.qasys.service.UserService;
+import sdu.addd.qasys.util.HtmlUtil;
 import sdu.addd.qasys.util.SecurityUtil;
 
 import java.util.*;
@@ -154,6 +155,7 @@ public class AnswerServiceImpl extends ServiceImpl<AnswerMapper, Answer> impleme
         queryWrapper.select(Question::getTitle, Question::getAuthorId);
         Question question = questionMapper.selectOne(queryWrapper);
         answerMessageContent.setQuestionTitle(question.getTitle());
+        answerMessageContent.setAnswer(HtmlUtil.getText(answer.getContent()));
 
         if(!Objects.equals(question.getAuthorId(), answer.getAuthorId())){
             //使用回答的id作为消息的key，以便快速检索删除
