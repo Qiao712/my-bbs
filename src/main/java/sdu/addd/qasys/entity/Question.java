@@ -1,5 +1,6 @@
 package sdu.addd.qasys.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import sdu.addd.qasys.common.AddGroup;
 import sdu.addd.qasys.common.UpdateGroup;
@@ -13,6 +14,7 @@ import org.hibernate.validator.constraints.Length;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Null;
+import java.util.List;
 
 @TableName("t_question")
 @ApiModel(value = "问题对象", description = "问题")
@@ -33,10 +35,6 @@ public class Question extends BaseEntity {
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定作者")
     private Long authorId;
 
-    @ApiModelProperty("所属板块")
-    @NotNull(groups = AddGroup.class, message = "所属板块不可为空")
-    private Long categoryId;
-
     @ApiModelProperty("点赞数")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定点赞数量")
     private Long likeCount;
@@ -52,4 +50,9 @@ public class Question extends BaseEntity {
     @ApiModelProperty("热度分值")
     @Null(groups = {AddGroup.class, UpdateGroup.class}, message = "不允许指定贴子热度分值")
     private Long score;
+
+    @ApiModelProperty("绑定的标签")
+    @NotNull(groups = {AddGroup.class, UpdateGroup.class}, message = "必须指定至少一个标签")
+    @TableField(exist = false)
+    private List<String> tags;
 }

@@ -47,6 +47,11 @@ public class SystemConfig {
     private Long maxImageSize;
 
     /**
+     * 最大标签数
+     */
+    private Long maxTagNum;
+
+    /**
      * ElasticSearch相关配置
      */
     @Data

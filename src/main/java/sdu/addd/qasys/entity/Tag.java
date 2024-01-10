@@ -13,21 +13,20 @@ import org.hibernate.validator.constraints.Length;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Null;
 
-@TableName("t_category")
-@ApiModel(value = "Category对象", description = "板块")
+@TableName("t_tag")
+@ApiModel(value = "Tag对象", description = "标签")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class Category extends BaseEntity {
+public class Tag extends BaseEntity {
     @NotBlank(groups = AddGroup.class, message = "名称不可为空")
-    @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 3, max = 10, message = "板块名称长度应在3到10之间")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 1, max = 12, message = "标签名称长度应在1到12之间")
     private String name;
 
-    @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 3, max = 100, message = "板块描述长度应在3到100之间")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 1, max = 100, message = "标签描述长度应在1到100之间")
     private String description;
 
-    @ApiModelProperty("上级分类名")
-    @NotBlank(groups = AddGroup.class, message = "分类名称不可为空")
-    @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 3, max = 10, message = "分类名称长度应在3到10之间")
+    @ApiModelProperty("标签类别名称")
+    @Length(groups = {AddGroup.class, UpdateGroup.class}, min = 1, max = 10, message = "分类名称长度应在1到10之间")
     private String category;
 
     @ApiModelProperty("logo图片文件url")

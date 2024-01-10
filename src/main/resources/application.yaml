@@ -11,8 +11,8 @@ spring:
 
   # Redis
   redis:
-    host: 114.116.245.83
-    password: lty0712
+    host: localhost
+#    password:
     database: 0
 
   # 文件上传大小限制
@@ -46,13 +46,14 @@ sys:
   max-post-image-num: 20
   max-comment-image-num: 10
   max-image-size: 102400000000
+  max-tag-num: 10
 
   # 阿里云OOS配置
   aliOSS:
     endpoint: oss-cn-beijing.aliyuncs.com
     accessKeyId: LTAI5tH33YAeUdyNbcVp1tV3
     accessKeySecret: gs1XVoh88wSix8TDaYeCWEPTHK3Mlf
-    bucket-name: qiao712-my-bbs
+    bucket-name: addd-my-bbs
 
   # ElasticSearch地址
   elastic-search:

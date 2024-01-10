@@ -59,7 +59,7 @@ public class QuestionController {
     @PreAuthorize("isAuthenticated() and hasAuthority('question:remove:mine')")
     public Result<Void> removeMyQuestion(@PathVariable("questionId") Long questionId, @AuthenticationPrincipal AuthUser currentUser){
         if(!questionService.isAuthor(questionId, currentUser.getId())){
-            throw new ServiceException(ResultCode.NO_PERMISSION, "无权删除评论");
+            throw new ServiceException(ResultCode.NO_PERMISSION, "无权删除");
         }
         return Result.build(questionService.removeQuestion(questionId));
     }

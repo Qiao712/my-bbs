@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="sdu.addd.qasys.mapper.QuestionMapper">
+    <select id="selectQuestions" resultType="Question">
+        SELECT t_question.* FROM t_question, t_tag_relation
+        WHERE
+        t_question.id = t_tag_relation.question_id
+        <if test="tagId != null">
+            AND t_tag_relation.tag_id = #{tagId}
+        </if>
+        <if test="authorId != null">
+            AND t_question.author_id = #{authorId}
+        </if>
+    </select>
+
     <select id="selectLikeCountBatch" resultType="long">
         SELECT like_count FROM t_question
         WHERE id IN

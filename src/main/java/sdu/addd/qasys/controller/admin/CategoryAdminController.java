@@ -3,8 +3,8 @@ package sdu.addd.qasys.controller.admin;
 import sdu.addd.qasys.common.AddGroup;
 import sdu.addd.qasys.common.UpdateGroup;
 import sdu.addd.qasys.common.Result;
-import sdu.addd.qasys.entity.Category;
-import sdu.addd.qasys.service.CategoryService;
+import sdu.addd.qasys.entity.Tag;
+import sdu.addd.qasys.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -16,35 +16,35 @@ import java.util.List;
 @RequestMapping("/api/admin/categories")
 public class CategoryAdminController {
     @Autowired
-    private CategoryService categoryService;
+    private TagService tagService;
 
     @PostMapping
     @PreAuthorize("hasAuthority('admin:category:add')")
-    public Result<Void> addCategory(@Validated(AddGroup.class) @RequestBody Category category){
-        return Result.build(categoryService.addCategory(category));
+    public Result<Void> addCategory(@Validated(AddGroup.class) @RequestBody Tag tag){
+        return Result.build(tagService.addTag(tag));
     }
 
     @DeleteMapping("/{categoryId}")
     @PreAuthorize("hasAuthority('admin:category:add')")
     public Result<Void> removeCategory(@PathVariable("categoryId") Long categoryId){
-        return Result.build(categoryService.removeById(categoryId));
+        return Result.build(tagService.removeById(categoryId));
     }
 
     @PutMapping
     @PreAuthorize("hasAuthority('admin:category:update')")
-    public Result<Void> updateCategory(@Validated(UpdateGroup.class) @RequestBody Category category){
-        return Result.build(categoryService.updateCategory(category));
+    public Result<Void> updateCategory(@Validated(UpdateGroup.class) @RequestBody Tag tag){
+        return Result.build(tagService.updateTag(tag));
     }
 
     @GetMapping("/categories")
     @PreAuthorize("hasAuthority('admin:category:list')")
     public Result<List<String>> listCategories(){
-        return Result.succeed(categoryService.listCategories());
+        return Result.succeed(tagService.listTags());
     }
 
     @PutMapping("/{categoryId}/logo")
     @PreAuthorize("hasAuthority('admin:category:logo:update')")
     public Result<Void> setCategoryLogo(@PathVariable Long categoryId, String logoUrl){
-        return Result.build(categoryService.setCategoryLogo(categoryId, logoUrl));
+        return Result.build(tagService.setTagLogo(categoryId, logoUrl));
     }
 }

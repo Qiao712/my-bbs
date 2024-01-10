@@ -1,6 +1,5 @@
 package sdu.addd.qasys.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -14,8 +13,9 @@ import sdu.addd.qasys.config.SystemConfig;
 import sdu.addd.qasys.dto.AuthUser;
 import sdu.addd.qasys.dto.QuestionDto;
 import sdu.addd.qasys.dto.UserDto;
-import sdu.addd.qasys.entity.Category;
 import sdu.addd.qasys.entity.Question;
+import sdu.addd.qasys.entity.Tag;
+import sdu.addd.qasys.entity.TagRelation;
 import sdu.addd.qasys.entity.User;
 import sdu.addd.qasys.exception.ServiceException;
 import sdu.addd.qasys.mapper.QuestionMapper;
@@ -32,11 +32,9 @@ import java.util.stream.Collectors;
 @Transactional
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
     @Autowired
-    private QuestionMapper questionMapper;
-    @Autowired
     private UserService userService;
     @Autowired
-    private CategoryService categoryService;
+    private TagService tagService;
     @Autowired
     private SearchService searchService;
     @Autowired
@@ -52,6 +50,10 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     @Override
     @Transactional
     public boolean addQuestion(Question question) {
+        if(question.getTags().size() < 1 || question.getTags().size() > 10){
+            throw new ServiceException(ResultCode.QUESTION_ERROR, "标签个数必须在1到10之间");
+        }
+
         //设置作者id
         AuthUser currentUser = SecurityUtil.getCurrentUser();
         question.setAuthorId(currentUser.getId());
@@ -59,8 +61,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         //初始化贴子热度分数
         question.setScore(statisticsService.computeQuestionScore(0, 0, 0, LocalDateTime.now()));
 
-        if(questionMapper.insert(question) == 0){
-            return false;
+        if(!save(question)){
+            throw new ServiceException(ResultCode.QUESTION_ERROR, "问题发布失败");
         }
 
         //解析出引用的图片
@@ -68,6 +70,13 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         if(urls.size() > systemConfig.getMaxPostImageNum()){
             throw new ServiceException(ResultCode.QUESTION_ERROR, "图片数量超出限制");
         }
+
+        //绑定标签
+        List<TagRelation> tagRelations = question.getTags().stream().map(tagName -> {
+            Tag tag = tagService.getOrCreateTagByName(tagName);
+            return new TagRelation(tag.getId(), question.getId());
+        }).collect(Collectors.toList());
+        tagService.saveTagRelations(tagRelations);
 
         //以同步至ElasticSearch
         try {
@@ -85,18 +94,14 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         //标记需要更新贴子热度分值
         statisticsService.markQuestionToFreshScore(questionId);
 
-        Question question = questionMapper.selectById(questionId);
+        Question question = getById(questionId);
         return convertToQuestionDto(question);
     }
 
     @Override
-    public IPage<QuestionDto> listQuestion(PageQuery pageQuery, Long categoryId, Long authorId) {
-        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(categoryId != null, Question::getCategoryId, categoryId);
-        queryWrapper.eq(authorId != null, Question::getAuthorId, authorId);
-
+    public IPage<QuestionDto> listQuestion(PageQuery pageQuery, Long tagId, Long authorId) {
         IPage<Question> questionPage = pageQuery.getIPage(columnsCanSorted, "score", false);
-        questionPage = questionMapper.selectPage(questionPage, queryWrapper);
+        questionPage = baseMapper.selectQuestions(questionPage, tagId, authorId);
         List<QuestionDto> questionDtos = questionPage.getRecords().stream().map(this::convertToQuestionDto).collect(Collectors.toList());
         return PageUtil.replaceRecords(questionPage, questionDtos);
     }
@@ -109,7 +114,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
         //设置likeCount字段
         List<Long> questionIds = questions.stream().map(Question::getId).collect(Collectors.toList());
-        List<Long> likeCountBatch = questionMapper.selectLikeCountBatch(questionIds);
+        List<Long> likeCountBatch = baseMapper.selectLikeCountBatch(questionIds);
         for(int i = 0; i < questionIds.size(); i++){
             questions.get(i).setLikeCount(likeCountBatch.get(i));
         }
@@ -120,13 +125,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     @Override
-    public boolean removeQuestion(Long categoryId) {
-        if(questionMapper.deleteById(categoryId) > 0){
+    public boolean removeQuestion(Long questionId) {
+        //删除标签
+        tagService.removeTagRelationsByQuestionId(questionId);
+
+        if(removeById(questionId)){
             //发布删除事件，以同步至ElasticSearch
             try {
-                searchService.removeQuestion(categoryId);
+                searchService.removeQuestion(questionId);
             } catch (Throwable e) {
-                log.error("ES中删除失败");
+                log.error("ElasticSearch文档删除失败");
             }
             return true;
         }
@@ -139,7 +147,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         Question questionQuery = new Question();
         questionQuery.setId(categoryId);
         questionQuery.setAuthorId(userId);
-        return questionMapper.exists(new QueryWrapper<>(questionQuery));
+
+        return baseMapper.exists(new QueryWrapper<>(questionQuery));
     }
 
     private QuestionDto convertToQuestionDto(Question question){
@@ -153,11 +162,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         BeanUtils.copyProperties(user, userDto);
         questionDto.setAuthor(userDto);
 
-        //板块名称
-        Category category = categoryService.getById(question.getCategoryId());
-        if(category != null){
-            questionDto.setCategoryName(category.getName());
-        }
+        //标签
+        questionDto.setTags(tagService.getTagsOfQuestion(question.getId()));
 
         //当前用户是否已点赞
         Long currentUserId = SecurityUtil.isAuthenticated() ? SecurityUtil.getCurrentUser().getId() : null;

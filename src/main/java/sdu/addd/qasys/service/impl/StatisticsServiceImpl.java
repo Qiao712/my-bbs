@@ -31,7 +31,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     //浏览量统计，两个hash表轮换着使用
     private final String POST_VIEW_COUNT_TABLE = "post_view_counts";
     //用于计算贴子发布时间
-    private final LocalDateTime POST_EPOCH = LocalDateTime.of(2022, 7,12,0,0,0);
+    private final LocalDateTime PENPENPEN_EPOCH = LocalDateTime.of(2022, 7,12,0,0,0);
 
     @Override
     public void increaseQuestionViewCount(long postId) {
@@ -136,12 +136,10 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     /**
-     * 计算贴子热度分值
+     * 计算问题热度分值
      */
     @Override
     public Long computeQuestionScore(long likeCount, long commentCount, long viewCount, LocalDateTime createTime){
-        //10个赞可以相当于1分钟
-        //2个评论可以相当于1分钟
-        return likeCount/10L + commentCount/2L + viewCount/30L + Duration.between(POST_EPOCH, createTime).toMinutes();
+        return likeCount/10L + commentCount/2L + viewCount/30L + Duration.between(PENPENPEN_EPOCH, createTime).toMinutes();
     }
 }
