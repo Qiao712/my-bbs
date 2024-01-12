@@ -12,11 +12,11 @@ public interface QuestionService extends IService<Question> {
 
     QuestionDto getQuestion(Long questionId);
 
-    IPage<QuestionDto> listQuestion(PageQuery pageQuery, Long categoryId, Long authorId);
+    IPage<QuestionDto> listQuestion(PageQuery pageQuery, Long tagId, Long authorId);
 
-    IPage<QuestionDto> searchQuestion(PageQuery pageQuery, String text, Long categoryId, Long authorId);
+    IPage<QuestionDto> searchQuestion(PageQuery pageQuery, String text, Long tagId, Long authorId);
 
-    boolean removeQuestion(Long categoryId);
+    boolean removeQuestion(Long questionId);
 
     boolean isAuthor(Long categoryId, Long userId);
 }

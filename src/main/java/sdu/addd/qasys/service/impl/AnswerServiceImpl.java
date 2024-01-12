@@ -11,7 +11,7 @@ import sdu.addd.qasys.common.PageQuery;
 import sdu.addd.qasys.common.ResultCode;
 import sdu.addd.qasys.dto.AuthUser;
 import sdu.addd.qasys.dto.UserDto;
-import sdu.addd.qasys.dto.message.AnswerMessageContent;
+import sdu.addd.qasys.dto.message.AnswerNotificationContent;
 import sdu.addd.qasys.entity.Answer;
 import sdu.addd.qasys.entity.Question;
 import sdu.addd.qasys.entity.User;
@@ -19,7 +19,7 @@ import sdu.addd.qasys.exception.ServiceException;
 import sdu.addd.qasys.mapper.AnswerMapper;
 import sdu.addd.qasys.mapper.QuestionMapper;
 import sdu.addd.qasys.service.AnswerService;
-import sdu.addd.qasys.service.MessageService;
+import sdu.addd.qasys.service.NotificationService;
 import sdu.addd.qasys.service.StatisticsService;
 import sdu.addd.qasys.service.UserService;
 import sdu.addd.qasys.util.HtmlUtil;
@@ -45,7 +45,7 @@ public class AnswerServiceImpl extends ServiceImpl<AnswerMapper, Answer> impleme
     @Autowired
     private StatisticsService statisticsService;
     @Autowired
-    private MessageService messageService;
+    private NotificationService notificationService;
 
     @Override
     public boolean addAnswer(Answer answer) {
@@ -142,7 +142,7 @@ public class AnswerServiceImpl extends ServiceImpl<AnswerMapper, Answer> impleme
      * 发送评论提醒消息
      */
     private void sendNoticeMessage(Answer answer){
-        AnswerMessageContent answerMessageContent = new AnswerMessageContent();
+        AnswerNotificationContent answerMessageContent = new AnswerNotificationContent();
 
         answerMessageContent.setAnswerId(answer.getId());
         answerMessageContent.setAuthorId(answer.getAuthorId());
@@ -159,7 +159,7 @@ public class AnswerServiceImpl extends ServiceImpl<AnswerMapper, Answer> impleme
 
         if(!Objects.equals(question.getAuthorId(), answer.getAuthorId())){
             //使用回答的id作为消息的key，以便快速检索删除
-            messageService.sendMessage(answer.getAuthorId(), question.getAuthorId(), answer.getId().toString(), answerMessageContent);
+            notificationService.sendNotification(question.getAuthorId(), answer.getId().toString(), answerMessageContent);
         }
     }
 }

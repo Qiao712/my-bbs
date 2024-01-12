@@ -107,8 +107,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     @Override
-    public IPage<QuestionDto> searchQuestion(PageQuery pageQuery, String text, Long categoryId, Long authorId) {
-        IPage<Question> questionPage = searchService.searchQuestions(pageQuery, text, authorId, categoryId);
+    public IPage<QuestionDto> searchQuestion(PageQuery pageQuery, String text, Long tagId, Long authorId) {
+        IPage<Question> questionPage = searchService.searchQuestions(pageQuery, text, authorId, tagId);
         List<Question> questions = questionPage.getRecords();
         if(questions.isEmpty()) return PageUtil.replaceRecords(questionPage, Collections.emptyList());
 

@@ -40,5 +40,5 @@ public class Conversation implements Serializable {
     private Integer unreadNum2;
 
     @TableField(exist = false)
-    private PrivateMessage lastMessage;
+    private Message lastMessage;
 }

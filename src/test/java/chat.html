@@ -23,9 +23,9 @@
 
     <form>
         接收者UserId:<input name="receiver"/>
-        消息:<input name="message"/>
+        消息:<input name="notification"/>
         <br/>
-        <input type="button" value="发送" onclick="sendMessage(this.form.receiver.value, this.form.message.value)"/>
+        <input type="button" value="发送" onclick="sendMessage(this.form.receiver.value, this.form.notification.value)"/>
     </form>
 </div>
 
@@ -57,7 +57,7 @@
                 console.log("接受", event)
                 let response = JSON.parse(event.data)
                 if(response.status != 0){
-                    textArea.value = textArea.value + "错误:" + response.message + "\n"
+                    textArea.value = textArea.value + "错误:" + response.notification + "\n"
                 }else{
                     textArea.value = textArea.value + '[' + response.data.senderId + ']' + response.data.content + "\n"
                 }
@@ -73,7 +73,7 @@
         }
     }
 
-    function sendMessage(receiver, message){
+    function sendMessage(receiver, notification){
         if(!socket){
             alert("未建立连接")
             return
@@ -82,15 +82,15 @@
         if(socket.readyState == WebSocket.OPEN){
             let request = {
                 requestType: 1,
-                privateMessage:{
+                message:{
                     type: 1,
                     receiverId: receiver,
-                    content: message
+                    content: notification
                 }
             }
 
             socket.send(JSON.stringify(request))
-            textArea.value = textArea.value + "[我]" + message + "\n"
+            textArea.value = textArea.value + "[我]" + notification + "\n"
         }else{
             console.log("连接不可用")
         }

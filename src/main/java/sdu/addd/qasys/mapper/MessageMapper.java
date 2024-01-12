@@ -1,12 +1,13 @@
 package sdu.addd.qasys.mapper;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import sdu.addd.qasys.entity.Message;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
 public interface MessageMapper extends BaseMapper<Message> {
-    Integer acknowledgeMessages(List<Long> messageIds);
+    List<Message> selectMessages(Long conversationId, LocalDateTime after, LocalDateTime before, int limit);
 }
