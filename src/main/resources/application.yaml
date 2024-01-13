@@ -34,11 +34,11 @@ spring:
 
 mybatis-plus:
   mapper-locations: classpath:mappers/*.xml
-  type-aliases-package: sdu.addd.qasys.entity
+  type-aliases-package: qiao.qasys.entity
   configuration:
     map-underscore-to-camel-case: true
 
-# 论坛系统设置
+# 系统设置
 sys:
   token-valid-time: 3600
   remember-me-token-valid-time: 604800   #7天
@@ -60,4 +60,4 @@ sys:
     hosts:
       - 114.116.245.83:9200
     username: elastic
-    password: lty0712
+    password: 123456
